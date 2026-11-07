@@ -136,10 +136,10 @@ test('flop/turn/river edits attach public-card images and use new filenames to a
  for(const [street,count] of [['flop',3],['turn',4],['river',5]]){
   while(!t.hand.done&&t.hand.street!==street)service.action(t,t.hand.turn,t.hand.seats[t.hand.turn].bet<t.hand.currentBet?'call':'check',null,t.hand.rev);
   assert.equal(t.hand.board.length,count);await runtime.render(t);
-  const payload=messages.at(-1);assert.equal(payload.files.length,2);assert.equal(payload.embeds.length,2);
+  const payload=messages.at(-1);assert.equal(payload.files.length,1);assert(payload.content.startsWith('# Community Cards'));
   const board=payload.files.find(f=>f.name.startsWith('board-'));assert(board);
-  assert.equal(payload.embeds[1].toJSON().image.url,`attachment://${board.name}`);
-  const oldName=board.name;await runtime.render(t);assert.notEqual(messages.at(-1).files[1].name,oldName);
+  assert.equal(payload.embeds,undefined);
+  const oldName=board.name;await runtime.render(t);assert.notEqual(messages.at(-1).files[0].name,oldName);assert.equal(messages.at(-1).embeds[0].toJSON().image,undefined);
   assert.deepEqual(messages.at(-1).attachments,[]);
  }
  store.close();

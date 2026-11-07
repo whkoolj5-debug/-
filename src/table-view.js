@@ -77,3 +77,11 @@ export function replayState(t,handNo,step=0){
  return {table:{...t,players:Object.fromEntries(Object.entries(t.players).map(([id,p])=>[id,{...p,quit:frame.quitIds?.includes(id)||false}])),status:'playing',handNo,hand},step,count:record.frames.length,
   truncated:record.truncated,label:event?`${actionName(event.kind)}${event.amount?` +${event.amount.toLocaleString('ko-KR')}`:''}${event.automatic?' (시간 초과)':''}`:'블라인드 배치'};
 }
+
+export function turnClock(t,now=Date.now()){
+ const total=Number.isFinite(t.turnSeconds)?t.turnSeconds:90;
+ const active=t.status==='playing'&&t.hand&&!t.hand.done&&!t.replay&&Number.isFinite(t.lastAction);
+ if(!active)return null;
+ const deadline=t.lastAction+total*1000,remaining=Math.max(0,Math.ceil((deadline-now)/1000));
+ return {total,deadline,remaining,ratio:Math.max(0,Math.min(1,(deadline-now)/(total*1000)))};
+}

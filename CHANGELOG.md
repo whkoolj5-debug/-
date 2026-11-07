@@ -1,3 +1,12 @@
+# 2.3.0
+
+- Large 1800×1170 public table with explicit SMALL BLIND / BIG BLIND amounts.
+- Public host controls and START (2–7 players); owner authorization remains enforced.
+- Automatic private card DMs and turn reminders; private card button fallback.
+- Large YOUR TURN and remaining time; image refresh every 10 seconds.
+- Separate public community-card image, updated on flop/turn/river.
+- Public interaction errors never overwrite the shared table.
+
 # 2.2.4 — Remove dotenv startup dependency
 
 - Replace dotenv/config imports in bot startup, config check and command registration with Node's built-in loadEnvFile.

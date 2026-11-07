@@ -100,14 +100,14 @@ test('public Discord payloads keep component limits, clear costs, private START,
  assert(historyRows(t,1)[0].components[0].data.disabled);assert(historyRows(t,1)[0].components[1].data.disabled);
 });
 test('public table image cannot leak active or folded hole cards; supports Korean, hostile names, and every theme',async()=>{
- const t=fixture();t.players.a.name='<svg>&"한글';
- const original=await renderTable(t);assert.equal((await sharp(original).metadata()).width,1200);
+ const t=fixture();t.clockNow=1700000000000;t.players.a.name='<svg>&"한글';
+ const original=await renderTable(t);assert.equal((await sharp(original).metadata()).width,1800);
  const altered=structuredClone(t);altered.hand.holeCards.a=[...altered.hand.holeCards.b];
  assert.deepEqual(await renderTable(altered),original);
  const folded=t.hand.turn;act(t.hand,folded,'fold');checkdown(t.hand);
  const finished=await renderTable(t);t.hand.holeCards[folded]=t.hand.holeCards[t.hand.ids.find(id=>id!==folded)];
  assert.deepEqual(await renderTable(t),finished);
- const hashes=new Set();for(const theme of Object.keys(themes)){t.theme=theme;const buffer=await renderTable(t);assert.equal((await sharp(buffer).metadata()).height,780);hashes.add(buffer.toString('base64').slice(-300));}
+ const hashes=new Set();for(const theme of Object.keys(themes)){t.theme=theme;const buffer=await renderTable(t);assert.equal((await sharp(buffer).metadata()).height,1170);hashes.add(buffer.toString('base64').slice(-300));}
  assert.equal(hashes.size,3);assert.equal(esc('<&>'), '&lt;&amp;&gt;');
 });
 

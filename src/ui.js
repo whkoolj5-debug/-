@@ -1,5 +1,5 @@
 import {availableHistory} from './interactions.js';
-import {bettingInfo,canAct,showdown,streetName,actionName,cardText,tableTheme,publicRecord,MIN_PLAYERS} from './table-view.js';
+import {bettingInfo,canAct,showdown,streetName,actionName,cardText,tableTheme,publicRecord,MIN_PLAYERS,turnClock} from './table-view.js';
 import {ActionRowBuilder,ButtonBuilder,ButtonStyle,EmbedBuilder} from 'discord.js';
 export const money=n=>Number(n).toLocaleString('ko-KR');
 export const btn=(id,label,style=ButtonStyle.Secondary,disabled=false)=>new ButtonBuilder().setCustomId(id).setLabel(label.slice(0,80)).setStyle(style).setDisabled(disabled);
@@ -7,22 +7,22 @@ export function rows(buttons){const a=[];for(let i=0;i<buttons.length;i+=5)a.pus
 export const confirm=(prefix,t,suffix='')=>rows([btn(`${prefix}yes:${t.id}${suffix}`,'YES',ButtonStyle.Success),btn(`${prefix}no:${t.id}${suffix}`,'NO',ButtonStyle.Danger)]);
 export function publicRows(t){
  if(t.status==='closed')return t.hand?[...rows([btn(`history:${t.id}`,'최근 판 기록')])]:[];
- if(t.status==='lobby')return rows([btn(`join:${t.id}`,`${t.ownerName}님의 테이블 참여`,ButtonStyle.Primary,t.seats.every(Boolean))]);
+ if(t.status==='lobby')return [...rows([btn(`join:${t.id}`,`${t.ownerName}님의 테이블 참여`,ButtonStyle.Primary,t.seats.every(Boolean))]),...hostRows(t)];
  if(t.status!=='playing')return [];
  const h=t.hand,tag=`:${t.id}:${h.rev}`,info=bettingInfo(h);
  const controls=rows([btn(`cards:${t.id}`,'내 카드 보기',ButtonStyle.Primary),btn(`history:${t.id}`,'최근 판 기록'),btn(`surrender:${t.id}`,'ㅈㅈ · 영구 포기',ButtonStyle.Secondary,h.done)]);
- if(h.done)return controls;
+ if(h.done)return [...controls,...hostRows(t)];
  const actions=rows([
   btn(`check${tag}`,'체크',ButtonStyle.Secondary,!canAct(h,h.turn,'check')),
   btn(`call${tag}`,`콜 ${money(info.call)}`,ButtonStyle.Success,info.call===0),
   btn(`raise${tag}`,info.max<info.min?'직접 입력 · 올인만 가능':`직접 입력 · 최소 ${money(info.min)}`,ButtonStyle.Primary,!info.canRaise),
   btn(`allin${tag}`,'올인',ButtonStyle.Danger,!canAct(h,h.turn,'allin')),
   btn(`fold${tag}`,'폴드')]);
- return [...controls,...actions,...rows(info.presets.map(p=>btn(`quick_${p.key}${tag}`,`${p.label} → ${money(p.total)}`)))];
+ return [...controls,...actions,...rows(info.presets.map(p=>btn(`quick_${p.key}${tag}`,`${p.label} → ${money(p.total)}`))),...hostRows(t)];
 }
 export function hostRows(t){
  const theme=btn(`theme:${t.id}`,`테마 · ${tableTheme(t).name}`),refresh=btn(`refresh:${t.id}`,'테이블 다시 표시');
- if(t.status==='lobby')return rows([btn(`biginput:${t.id}`,'블라인드 설정',ButtonStyle.Primary),...(t.seats.filter(Boolean).length>=MIN_PLAYERS?[btn(`start:${t.id}`,'START',ButtonStyle.Success,!t.blindsConfirmed)]:[]),btn(`cancel:${t.id}`,'대기 테이블 취소',ButtonStyle.Danger),theme,refresh]);
+ if(t.status==='lobby')return rows([btn(`biginput:${t.id}`,'BIG / SMALL 설정',ButtonStyle.Primary),btn(`start:${t.id}`,'START',ButtonStyle.Success,!t.blindsConfirmed||t.seats.filter(Boolean).length<MIN_PLAYERS),btn(`cancel:${t.id}`,'대기 테이블 취소',ButtonStyle.Danger),theme,refresh]);
  if(t.status==='playing')return rows([...(t.hand?.done?[btn(`next:${t.id}`,'다음 판 시작',ButtonStyle.Success)]:[]),theme,refresh]);
  if(['refunding','settling'].includes(t.status))return rows([btn(`retry:${t.id}`,'정산 이어서 처리',ButtonStyle.Primary),refresh]);
  return [];
@@ -45,8 +45,9 @@ export function embed(t,mode,turnSeconds=90){
  }
  text+='\n'+t.seats.map((id,i)=>`${i+1}번 · ${id?`<@${id}> · ${money(h?.seats[id]?.chips??t.startingMoney)} 칩${t.players[id].quit?' · 영구 포기':h?.folded.includes(id)?' · 폴드':''}`:'빈자리'}`).join('\n');
  if(h?.log?.length)text+='\n\n**최근 행동**\n'+h.log.slice(-3).map(a=>`<@${a.id}> ${actionName(a.kind)}${a.automatic?' (시간 초과)':''}${a.amount?` +${money(a.amount)}`:''}`).join('\n');
- if(t.status==='lobby')text+='\n\n2명 이상 참가 + 블라인드 확정 → 방장이 /포커 관리에서 START';
- return new EmbedBuilder().setColor(h?.done?0xd7ad63:Number.parseInt(tableTheme(t).ink.slice(1),16)).setTitle(`RSF POKER · ${t.ownerName}님의 테이블`).setDescription(text.slice(0,4000)).setImage('attachment://table.png').setFooter({text:'내 카드는 본인만 확인 · 빠른 베팅 금액은 이번 라운드의 총액 · /포커 관리'});
+ if(t.handMail?.handNo===t.handNo&&t.handMail.failed.length)text+='\n\n일부 참가자에게 DM을 보낼 수 없습니다. 해당 참가자는 내 카드 보기 버튼으로 패를 확인하세요.';
+ if(t.status==='lobby')text+='\n\n2명 이상 참가 + BIG / SMALL 확정 → 방장이 아래 START · 방장 전용 설정은 다른 참가자가 누를 수 없습니다.';
+ return new EmbedBuilder().setColor(h?.done?0xd7ad63:Number.parseInt(tableTheme(t).ink.slice(1),16)).setTitle(`RSF POKER · ${t.ownerName}님의 테이블`).setDescription(text.slice(0,4000)).setImage('attachment://table.png').setFooter({text:'설정/START/다음 판은 방장 전용 · 개인 패는 자동 DM · DM 차단 시 내 카드 보기'});
 }
 
 export function historyRows(t,selected){

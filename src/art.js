@@ -12,7 +12,7 @@ function ensureFontCache(){
 process.env.FONTCONFIG_FILE=path.resolve('assets/fonts/fonts.conf');
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {makeDeck,rankLabel} from './poker-engine.js';
-import {showdown,streetName,actionName,tableTheme} from './table-view.js';
+import {showdown,streetName,actionName,tableTheme,turnClock} from './table-view.js';
 export const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 export function pip(s,x,y,size=28,flip=false){
  const paths={H:'M0,9 C-25,-5 -17,-24 0,-12 C17,-24 25,-5 0,9Z',D:'M0,-22 15,-2 0,18 -15,-2Z',S:'M0,-24 C-6,-14 -25,-3 -16,7 C-10,15 -3,8 -2,5 L-5,19 H5 L2,5 C3,8 10,15 16,7 C25,-3 6,-14 0,-24Z',C:'M-5,-7 C-21,-17 -27,7 -10,9 C-5,10 -2,6 -2,4 L-5,19 H5 L2,4 C2,6 5,10 10,9 C27,7 21,-17 5,-7 C18,-29 -18,-29 -5,-7Z'};
@@ -52,7 +52,8 @@ export async function handImage(cards){
 }
 export async function renderTable(t){
  ensureFontCache();
- const width=1200,height=780,h=t.hand,theme=tableTheme(t);
+ const width=1800,height=1170,scale=1.5,h=t.hand,theme=tableTheme(t);
+ const clock=turnClock(t,t.clockNow??Date.now());
  const pos=[[600,130],[951,199],[1036,431],[812,636],[388,636],[164,431],[249,199]];
  const fmt=n=>Number(n||0).toLocaleString('en-US');
  const text=(x,y,label,size=16,color='#e4efef',extra='')=>`<text x="${x}" y="${y}" fill="${color}" font-family="Noto Sans KR, sans-serif" font-size="${size}" ${extra}>${esc(label)}</text>`;
@@ -60,7 +61,7 @@ export async function renderTable(t){
  const stage=h?.done?'HAND COMPLETE':h?streetName(h.street).toUpperCase():'WAITING FOR PLAYERS';
  const winners=new Set(h?.done?h.results.flatMap(r=>Object.keys(r.payouts)):[]);
  const revealed=new Map((h?.publicShowdown??showdown(h)).map(p=>[p.id,p.cards]));
- let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+ let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 1200 780">
  <defs>
   <radialGradient id="bg"><stop stop-color="#1a3139"/><stop offset="1" stop-color="#0a111b"/></radialGradient>
   <radialGradient id="felt"><stop stop-color="${theme.felt[0]}"/><stop offset="1" stop-color="${theme.felt[1]}"/></radialGradient>
@@ -77,15 +78,15 @@ export async function renderTable(t){
  <ellipse cx="600" cy="375" rx="453" ry="211" fill="url(#felt)" stroke="#091d23" stroke-width="6"/>
  <ellipse cx="600" cy="375" rx="443" ry="201" fill="url(#weave)" stroke="#52917f" stroke-opacity=".3"/>
  ${text(600,208,stage,13,'#a2c7b7',center+' letter-spacing="3"')}
- ${text(600,234,`BLINDS  ${fmt(t.smallBlind)} / ${fmt(t.bigBlind)}`,12,'#81aaa0',center)}
+ ${text(600,235,`SMALL BLIND ${fmt(t.smallBlind)}   |   BIG BLIND ${fmt(t.bigBlind)}`,19,'#d2e9da',center+' font-weight="bold"')}
  <rect x="480" y="252" width="240" height="46" rx="23" fill="#082b29" stroke="#408b76"/>
  ${text(600,282,h?`POT  ${fmt(h.pot)}`:'TEXAS HOLD’EM',22,'#f2dca9',center+' font-weight="bold"')}
  ${text(600,443,h?.done?'RESULTS BELOW':h?`CURRENT BET  ${fmt(h.currentBet)}`:`${t.seats.filter(Boolean).length} / 7 PLAYERS`,14,'#a7c8ba',center+' letter-spacing="1"')}
- ${text(600,485,'RSF · TEXAS HOLD’EM',12,'#69998d',center+' letter-spacing="4"')}`;
+ ${clock?`${text(600,481,'YOUR TURN',34,'#65f4cb',center+' font-weight="bold" letter-spacing="3"')}${text(600,511,(t.players[h.turn]?.name||'').slice(0,20),20,'#ebfff5',center+' font-weight="bold"')}${text(600,541,`TIME LEFT  ${clock.remaining}s`,26,clock.remaining<=15?'#ff877e':'#f4d58a',center+' font-weight="bold"')}<rect x="460" y="553" width="280" height="8" rx="4" fill="#092d2a"/><rect x="460" y="553" width="${Math.round(280*clock.ratio)}" height="8" rx="4" fill="${clock.remaining<=15?'#ff877e':'#65f4cb'}"/>`:text(600,485,'RSF · TEXAS HOLD’EM',12,'#69998d',center+' letter-spacing="4"')}`;
  const cardLayers=[];
  for(let i=0;i<5;i++){
   const left=384+i*88,top=316,c=h?.board[i];
-  if(c)cardLayers.push({input:await sharp(`assets/cards/${c.id}.png`).resize(80,112).toBuffer(),left,top});
+  if(c)cardLayers.push({input:await sharp(`assets/cards/${c.id}.png`).resize(120,168).toBuffer(),left:Math.round(left*scale),top:Math.round(top*scale)});
   else svg+=`<rect x="${left}" y="${top}" width="80" height="112" rx="9" fill="#092e2b" fill-opacity=".55" stroke="#548f7b" stroke-opacity=".55" stroke-dasharray="5 5"/>${text(left+40,top+65,'RSF',13,'#49806f',center+' letter-spacing="2"')}`;
  }
  const dealer=h?.ids[h.dealerIndex],small=h?.ids[h.sbIndex],big=h?.ids[h.bbIndex];
@@ -109,7 +110,7 @@ export async function renderTable(t){
    const top=i===0?y-24:y>500?y-91:y+78;
    const cardX=i===0?x+112:x-37;
    if(revealed.has(id)){
-    for(const [n,c] of revealed.get(id).entries())cardLayers.push({input:await sharp(`assets/cards/${c.id}.png`).resize(34,48).toBuffer(),left:cardX+n*40,top});
+    for(const [n,c] of revealed.get(id).entries())cardLayers.push({input:await sharp(`assets/cards/${c.id}.png`).resize(51,72).toBuffer(),left:Math.round((cardX+n*40)*scale),top:Math.round(top*scale)});
    }else if(!h.done){
     for(let n=0;n<2;n++)svg+=`<rect x="${cardX+8+n*31}" y="${top}" width="27" height="38" rx="4" fill="#173343" stroke="#7f9b9b"/><path d="M${cardX+13+n*31} ${top+7}l17 24m0-24l-17 24" stroke="#48727a"/>`;
    }

@@ -1,3 +1,4 @@
+import {replyInteractionError} from './interaction-errors.js';
 import './load-env.js';
 import {Client,GatewayIntentBits,Events,MessageFlags,Routes} from 'discord.js';
 import {createServer} from 'node:http';
@@ -18,7 +19,7 @@ const store=new Store(config.databasePath);
 const economy=new Economy(store,{mode,token:config.economyToken});
 const service=new Service(store,economy);service.recover();
 const client=new Client({intents:[GatewayIntentBits.Guilds,GatewayIntentBits.GuildMessages]});
-const {handle,render,runTimeouts}=createDiscordRuntime({client,store,economy,service,config});
+const {handle,render,runTimeouts,refreshClocks,restoreHands}=createDiscordRuntime({client,store,economy,service,config});
 const prefix=createPrefixCommands({store,economy,config,botId:()=>client.user?.id});
 const E={flags:MessageFlags.Ephemeral};
 let chain=Promise.resolve(),busy=0,closing=false;
@@ -32,9 +33,7 @@ client.on(Events.InteractionCreate,i=>{
  if(closing||busy)return i.reply({...E,content:'다른 동작을 처리 중입니다. 잠시 후 다시 눌러주세요.'}).catch(()=>{});
  return serial(async()=>{
  try{await handle(i);}catch(e){console.error(e.message);const msg=e.message?.slice(0,1500)||'처리 중 오류가 발생했습니다.';
-  if(i.deferred)await i.editReply({content:msg,components:[]}).catch(()=>{});
-  else if(i.replied)await i.followUp({...E,content:msg}).catch(()=>{});
-  else await i.reply({...E,content:msg}).catch(()=>{});
+  await replyInteractionError(i,msg).catch(()=>{});
  }
 });});
 client.once(Events.ClientReady,async()=>{
@@ -48,12 +47,12 @@ client.once(Events.ClientReady,async()=>{
   }catch{console.error('슬래시 명령어 갱신 실패. 필요하면 npm run register를 실행하세요.');}});
  }
 
- for(const t of service.tables.values())if(t.status!=='closed')await serial(async()=>{try{if(t.status==='settling')await service.finish(t);if(t.status==='refunding')await service.cancel(t,t.ownerId);await render(t);}catch(e){console.error('복구:',t.id,e.message);}});
+ for(const t of service.tables.values())if(t.status!=='closed')await serial(async()=>{try{if(t.status==='settling')await service.finish(t);if(t.status==='refunding')await service.cancel(t,t.ownerId);await render(t);await restoreHands(t);}catch(e){console.error('복구:',t.id,e.message);}});
 });
 // Offline recovery is rendered on ready; do not advance restored hands while disconnected.
 const timer=setInterval(()=>{
  if(closing||!client.isReady())return;
- serial(()=>runTimeouts()).catch(e=>console.error('턴 처리:',e.message));
+ serial(async()=>{await runTimeouts();await refreshClocks();}).catch(e=>console.error('턴 처리:',e.message));
 },5000);timer.unref();
 const server=createServer((_req,res)=>{
  const ready=!closing&&client.isReady();

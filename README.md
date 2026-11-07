@@ -1,3 +1,7 @@
+## 2.3.0 table update
+
+Table images are 1800×1170. SMALL BLIND and BIG BLIND amounts appear on the table. START and host controls are on the public message; only the host can use them. Hole cards are sent privately by DM at the start of each hand, with a private card button when DMs are blocked. Community cards are shared publicly. YOUR TURN and time remaining appear on the image, refreshed every 10 seconds; the Discord deadline updates between refreshes.
+
 # RSF Poker Club · 디스코드 텍사스 홀덤 봇 2.2
 
 Node.js 24 이상. 2~7명이 시작하고, 탈락 후에는 2명까지 계속 진행합니다.
