@@ -56,18 +56,18 @@ test('money commands reject role mentions, absent members, bots, negative amount
 });
 test('!help provides working examples and makes admin zero-balance issuance explicit',async()=>{
  const {store,runtime,message}=setup();const m=message('!help');await runtime.handle(m);
- assert(moneyHelp.includes('!add-money @member 10000'));assert(moneyHelp.includes('can be 0'));assert(m.replies[0].embeds[0].toJSON().description.length<4096);store.close();
+ assert(moneyHelp.includes('!add-money @member 10000'));assert(moneyHelp.includes('can be 0'));assert(m.replies[0].embeds.every(e=>e.toJSON().description.length<4096));store.close();
 });
 test('privileged message intent is requested only when the app has enabled it',async()=>{
  for(const enabled of [false,true]){
   const client={options:{intents:new IntentsBitField([GatewayIntentBits.Guilds])},rest:{get:async()=>({flags:enabled?ApplicationFlagsBitField.Flags.GatewayMessageContentLimited:0})}};
-  const result=await enablePrefixIntents(client,()=>{});assert.equal(result,enabled);
+  const result=await enablePrefixIntents(client,()=>{},{autoEnable:false});assert.equal(result,enabled);
   assert(client.options.intents.has(GatewayIntentBits.GuildMessages));assert.equal(client.options.intents.has(GatewayIntentBits.MessageContent),enabled);
  }
 });
 test('message intent discovery failure does not prevent the slash-command poker bot from starting',async()=>{
  const client={options:{intents:new IntentsBitField([GatewayIntentBits.Guilds])},rest:{get:async()=>{throw Error('API down');}}};
- assert.equal(await enablePrefixIntents(client,()=>{}),false);assert(client.options.intents.has(GatewayIntentBits.Guilds));assert(!client.options.intents.has(GatewayIntentBits.MessageContent));
+ assert.equal(await enablePrefixIntents(client,()=>{},{autoEnable:false}),false);assert(client.options.intents.has(GatewayIntentBits.Guilds));assert(!client.options.intents.has(GatewayIntentBits.MessageContent));
 });
 
 test('English slash labels keep the original handler names and remove the old balance subcommand',async()=>{
@@ -84,7 +84,7 @@ test('real discord.js Client frozen intent fields are reassigned so message even
   try{
    assert(Object.isFrozen(client.options.intents));assert(!client.options.intents.has(GatewayIntentBits.GuildMessages));
    client.rest.get=async()=>({flags:enabled?ApplicationFlagsBitField.Flags.GatewayMessageContentLimited:0});
-   const result=await enablePrefixIntents(client,()=>{});
+   const result=await enablePrefixIntents(client,()=>{},{autoEnable:false});
    assert.equal(result,enabled);assert(client.options.intents.has(GatewayIntentBits.GuildMessages));
    assert.equal(client.options.intents.has(GatewayIntentBits.MessageContent),enabled);
    assert(Object.isFrozen(client.options.intents));
@@ -95,7 +95,53 @@ test('real Client still subscribes to guild messages when application permission
  const client=new Client({intents:[GatewayIntentBits.Guilds]});
  try{
   client.rest.get=async()=>{throw Error('API unavailable');};
-  assert.equal(await enablePrefixIntents(client,()=>{}),false);
+  assert.equal(await enablePrefixIntents(client,()=>{},{autoEnable:false}),false);
   assert(client.options.intents.has(GatewayIntentBits.GuildMessages));assert(!client.options.intents.has(GatewayIntentBits.MessageContent));
  }finally{client.destroy();}
+});
+
+test('message-content auto setup patches only supported limited flags and enables plain commands',async()=>{
+ const client=new Client({intents:[GatewayIntentBits.Guilds]}),calls=[];
+ const F=ApplicationFlagsBitField.Flags;
+ try{
+  client.rest.get=async route=>{calls.push({type:'get',route});return {flags:F.GatewayPresenceLimited|F.ApplicationCommandBadge,approximate_guild_count:1};};
+  client.rest.patch=async(route,{body})=>{calls.push({type:'patch',route,body});return {flags:body.flags|F.ApplicationCommandBadge};};
+  assert.equal(await enablePrefixIntents(client,()=>{}),true);
+  assert(client.options.intents.has(GatewayIntentBits.MessageContent));
+  const patch=calls.find(c=>c.type==='patch');assert.equal(patch.route,'/applications/@me');
+  assert.deepEqual(patch.body,{flags:F.GatewayPresenceLimited|F.GatewayMessageContentLimited});
+  assert.equal(Object.keys(patch.body).length,1);
+ }finally{client.destroy();}
+});
+test('already-enabled applications do not receive a settings mutation',async()=>{
+ const client=new Client({intents:[GatewayIntentBits.Guilds]});let patched=false;
+ try{
+  client.rest.get=async()=>({flags:ApplicationFlagsBitField.Flags.GatewayMessageContentLimited});client.rest.patch=async()=>{patched=true;};
+  assert.equal(await enablePrefixIntents(client,()=>{}),true);assert.equal(patched,false);
+ }finally{client.destroy();}
+});
+test('denied message-content setting changes do not request forbidden intents or stop poker',async()=>{
+ const client=new Client({intents:[GatewayIntentBits.Guilds]});const logs=[];
+ try{
+  client.rest.get=async()=>({flags:0,approximate_guild_count:1});client.rest.patch=async()=>{throw Object.assign(Error('Forbidden'),{status:403});};
+  assert.equal(await enablePrefixIntents(client,s=>logs.push(s)),false);
+  assert(client.options.intents.has(GatewayIntentBits.GuildMessages));assert(!client.options.intents.has(GatewayIntentBits.MessageContent));
+  assert(logs.some(s=>s.includes('403')));
+ }finally{client.destroy();}
+});
+test('verified-scale applications are not auto-granted a limited message intent',async()=>{
+ const client=new Client({intents:[GatewayIntentBits.Guilds]});let patched=false;
+ try{
+  client.rest.get=async()=>({flags:0,approximate_guild_count:100});client.rest.patch=async()=>{patched=true;};
+  assert.equal(await enablePrefixIntents(client,()=>{}),false);assert.equal(patched,false);
+ }finally{client.destroy();}
+});
+
+test('!help sends Korean and English together and stays within Discord embed text limits',async()=>{
+ const {store,runtime,message}=setup();const m=message('!help');await runtime.handle(m);
+ const embeds=m.replies[0].embeds.map(e=>e.toJSON());assert.equal(embeds.length,2);
+ assert(embeds[0].description.includes('관리자 잔액이 0이어도'));assert(embeds[1].description.includes('Your own balance can be 0'));
+ const textSize=embeds.reduce((n,e)=>n+e.title.length+e.description.length+e.footer.text.length,0);assert(textSize<=6000);
+ for(const command of ['!bal','!pay','!add-money','!remove-money','!reset-money','!lb','!help'])assert(parsePrefix(command,bot));
+ store.close();
 });

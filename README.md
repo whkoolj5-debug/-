@@ -7,7 +7,7 @@ Node.js 24 이상. 2~7명이 시작하고, 탈락 후에는 2명까지 계속 �
 
 - `!bal`, `!pay`, `!add-money`, `!remove-money`, `!reset-money`, `!lb`, `!help`
 - 새 돈 지급은 Administrator 권한이 필요하며 관리자 본인 잔액을 차감하지 않습니다.
-- 영어 메시지와 영어 튜토리얼: [COMMANDS.md](COMMANDS.md). 한국어 안내: [COMMANDS-KO.md](COMMANDS-KO.md).
+- 영어 응답과 한국어·영어 동시 튜토리얼: [COMMANDS.md](COMMANDS.md). 한국어 안내: [COMMANDS-KO.md](COMMANDS-KO.md).
 - 영어 Discord 클라이언트에는 `/poker` 등 영어 슬래시 이름이 표시됩니다.
 
 ## 잔액·관리자 지급 명령어
@@ -55,7 +55,7 @@ Windows에서는 `SETUP-WINDOWS.cmd`를 더블클릭해 설치·설정·명령�
 
 macOS/Linux에서는 `cp .env.example .env`, Windows PowerShell에서는 `Copy-Item .env.example .env`로 설정 파일을 만듭니다.
 기존 `.env`가 있으면 복사로 덮어쓰지 말고 직접 편집하세요. Bot Token만 `DISCORD_TOKEN`에 입력하며, Client Secret/Public Key는 사용하지 않습니다.
-일반 채팅 명령어 !bal·!pay·!add-money을 쓰려면 Developer Portal → Bot → Privileged Gateway Intents → Message Content Intent를 켜고 봇을 재시작하세요. Server Members/Presence intent는 필요 없습니다. 설정 전에는 봇을 @멘션한 뒤 !bal을 입력할 수 있습니다. 봇은 활성화된 Message Content 권한만 요청하므로 설정이 꺼져 있어도 포커 연결을 유지합니다.
+일반 !명령어는 기본적으로 시작 시 공식 API로 Message Content 권한 자동 활성화를 시도합니다(작은 봇의 limited intent). 콘솔에 `MessageContent=true`이면 멘션 없이 !bal·!pay·!help 등을 사용할 수 있습니다. Discord가 설정 변경을 거절한 경우에만 Developer Portal → Bot → Message Content Intent를 켜고 재시작하세요. 자동 설정을 원하지 않으면 `AUTO_ENABLE_MESSAGE_CONTENT=false`로 끌 수 있습니다. 다른 특권 intent는 새로 켜지 않습니다.
 토큰은 로컬 `.env`에만 보관하고 ZIP, Git, 채팅, 스크린샷에 포함하지 마세요. 노출했다면 Developer Portal에서 재발급하세요.
 
 ### 실제 서버에서 확인하는 순서

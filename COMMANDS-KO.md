@@ -5,9 +5,10 @@
 
 ## 먼저 한 번만 설정
 
-1. Discord Developer Portal에서 이 봇의 **Bot → Message Content Intent**를 켭니다.
-2. 디스호스트에서 봇을 재시작합니다. 이 설정 전에는 봇을 @멘션한 뒤 `!bal`을 입력할 수 있습니다.
-3. `!help` 또는 `!tutorial`을 입력해 봇 안에서도 이 안내를 볼 수 있습니다.
+1. 최신 버전을 배포하면 시작 시 Message Content 권한 자동 활성화를 시도합니다.
+2. 콘솔에 `MessageContent=true`가 나오면 모든 등록된 !명령어는 멘션 없이 사용할 수 있습니다.
+3. Discord가 자동 설정을 거부할 때만 Developer Portal → Bot → Message Content Intent를 켜고 재시작하세요.
+4. `!help` 또는 `!tutorial`은 한국어와 영어 안내를 함께 보여줍니다. 자동 설정은 `AUTO_ENABLE_MESSAGE_CONTENT=false`로 끌 수 있습니다.
 
 ## 일반 회원
 
@@ -95,4 +96,4 @@ API 키는 https://unbelievaboat.com/applications 에서 발급하고 서버 잔
 ## 영어 Discord 사용자
 
 영어 클라이언트에서는 `/poker table create`, `/blinds setup set`, `/poker manage`, `/poker hand`, `/poker history`, `/surrender`로 표시됩니다.
-한국어 클라이언트에는 기존 한국어 명령어가 그대로 표시됩니다. 잔액·송금·관리자 명령어와 `!help` 내용은 영어입니다.
+한국어 클라이언트에는 기존 한국어 명령어가 그대로 표시됩니다. 잔액·송금·관리자 명령어 응답은 영어이고, `!help`는 한국어와 영어를 함께 보여줍니다.

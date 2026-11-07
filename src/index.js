@@ -74,7 +74,7 @@ server.on('error',error=>{
 });
 for(const sig of ['SIGINT','SIGTERM'])process.on(sig,()=>shutdown());
 client.rest.setToken(config.token);
-enablePrefixIntents(client).then(()=>client.login(config.token)).catch(()=>{
+enablePrefixIntents(client,console.log,{autoEnable:config.autoEnableMessageContent}).then(()=>client.login(config.token)).catch(()=>{
  console.error('Discord 로그인 실패. 로컬 .env 토큰과 네트워크를 확인해주세요.');
  shutdown(1);
 });

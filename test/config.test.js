@@ -19,3 +19,9 @@ test('invalid timeout and port cannot silently disable turns or break health end
  for(const value of ['0','65536','oops'])assert.throws(()=>readConfig({...valid,PORT:value}),/PORT/);
  assert.equal(readConfig({...valid,TURN_SECONDS:'120',PORT:'8080'}).turnSeconds,120);
 });
+
+test('message-content auto setup defaults on and has an explicit opt-out',()=>{
+ assert.equal(readConfig(valid).autoEnableMessageContent,true);
+ assert.equal(readConfig({...valid,AUTO_ENABLE_MESSAGE_CONTENT:'FALSE'}).autoEnableMessageContent,false);
+ assert.throws(()=>readConfig({...valid,AUTO_ENABLE_MESSAGE_CONTENT:'typo'}),/AUTO_ENABLE_MESSAGE_CONTENT/);
+});

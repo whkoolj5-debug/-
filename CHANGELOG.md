@@ -1,3 +1,12 @@
+# 2.2.3 — Plain prefix commands and bilingual help
+
+- Enable the supported Message Content limited application flag through Discord's documented /applications/@me API on startup, before gateway login.
+- Preserve other limited flags, skip already-enabled or verified-scale applications, and safely retain mention commands/poker if the API denies the change.
+- All registered ! commands can work without a bot mention when the setting is enabled.
+- AUTO_ENABLE_MESSAGE_CONTENT=false explicitly disables automatic setting changes.
+- !help / !tutorial / !도움말 show Korean and English guides in the same reply, within Discord's total embed text limits.
+- 80 tests pass, including supported-flag updates, rejection, real-client subscriptions and bilingual response limits.
+
 # 2.2.2 — Fix message event subscriptions
 
 - discord.js freezes Client.options.intents. BitField.add() returns a new object for a frozen field; the old code ignored that return value.

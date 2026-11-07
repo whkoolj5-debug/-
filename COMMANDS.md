@@ -13,7 +13,7 @@ Use a real Discord member mention wherever you see `@member`. Amounts accept `10
 | `!lb` | Shows the server's total-balance leaderboard. |
 | `!lb 2` | Shows page 2. |
 | `!lb 1 -cash` | Ranks by cash. Use `-bank` or `-total` for other balances. |
-| `!help` or `!tutorial` | Shows the tutorial in Discord. |
+| `!help` or `!tutorial` | Shows Korean and English tutorials together in Discord. |
 
 Aliases: `!balance`, `!money` = `!bal`; `!give-money` = `!pay`; `!leaderboard` = `!lb`.
 Responses are public in the channel. Bots, webhooks, DMs and other servers are ignored.
@@ -52,9 +52,10 @@ Korean Discord clients retain the existing Korean slash-command labels.
 
 ## One-time message setup
 
-Enable **Developer Portal → your application → Bot → Privileged Gateway Intents → Message Content Intent**, then restart the bot.
-Before it is enabled, mention the bot before the command: `@RSF POKER BOT !bal`.
-The bot checks whether the intent is enabled and avoids requesting a forbidden privileged intent, so the poker bot can remain online.
+On startup, the bot uses Discord’s documented application API to enable the supported limited Message Content flag for small bots. After the console shows `MessageContent=true`, all registered ! commands work without a mention.
+If Discord rejects the change, enable **Developer Portal → your application → Bot → Message Content Intent** and restart. Until then, mention the bot before the command.
+Set `AUTO_ENABLE_MESSAGE_CONTENT=false` to opt out of automatic application changes. Existing presence/member limited settings are preserved; no other settings are changed. Applications at verified scale still need Discord approval.
+`!help` sends Korean and English together.
 The old `/포커 잔액` slash subcommand is removed on the next successful command sync; the other poker commands remain.
 
 ## TEST versus LIVE balances
