@@ -1,0 +1,366 @@
+[
+  {
+    "suit": "H",
+    "rank": 14,
+    "id": "AH",
+    "pipCount": 1,
+    "file": "assets/cards/AH.png"
+  },
+  {
+    "suit": "H",
+    "rank": 2,
+    "id": "2H",
+    "pipCount": 2,
+    "file": "assets/cards/2H.png"
+  },
+  {
+    "suit": "H",
+    "rank": 3,
+    "id": "3H",
+    "pipCount": 3,
+    "file": "assets/cards/3H.png"
+  },
+  {
+    "suit": "H",
+    "rank": 4,
+    "id": "4H",
+    "pipCount": 4,
+    "file": "assets/cards/4H.png"
+  },
+  {
+    "suit": "H",
+    "rank": 5,
+    "id": "5H",
+    "pipCount": 5,
+    "file": "assets/cards/5H.png"
+  },
+  {
+    "suit": "H",
+    "rank": 6,
+    "id": "6H",
+    "pipCount": 6,
+    "file": "assets/cards/6H.png"
+  },
+  {
+    "suit": "H",
+    "rank": 7,
+    "id": "7H",
+    "pipCount": 7,
+    "file": "assets/cards/7H.png"
+  },
+  {
+    "suit": "H",
+    "rank": 8,
+    "id": "8H",
+    "pipCount": 8,
+    "file": "assets/cards/8H.png"
+  },
+  {
+    "suit": "H",
+    "rank": 9,
+    "id": "9H",
+    "pipCount": 9,
+    "file": "assets/cards/9H.png"
+  },
+  {
+    "suit": "H",
+    "rank": 10,
+    "id": "10H",
+    "pipCount": 10,
+    "file": "assets/cards/10H.png"
+  },
+  {
+    "suit": "H",
+    "rank": 11,
+    "id": "JH",
+    "pipCount": 0,
+    "file": "assets/cards/JH.png"
+  },
+  {
+    "suit": "H",
+    "rank": 12,
+    "id": "QH",
+    "pipCount": 0,
+    "file": "assets/cards/QH.png"
+  },
+  {
+    "suit": "H",
+    "rank": 13,
+    "id": "KH",
+    "pipCount": 0,
+    "file": "assets/cards/KH.png"
+  },
+  {
+    "suit": "D",
+    "rank": 14,
+    "id": "AD",
+    "pipCount": 1,
+    "file": "assets/cards/AD.png"
+  },
+  {
+    "suit": "D",
+    "rank": 2,
+    "id": "2D",
+    "pipCount": 2,
+    "file": "assets/cards/2D.png"
+  },
+  {
+    "suit": "D",
+    "rank": 3,
+    "id": "3D",
+    "pipCount": 3,
+    "file": "assets/cards/3D.png"
+  },
+  {
+    "suit": "D",
+    "rank": 4,
+    "id": "4D",
+    "pipCount": 4,
+    "file": "assets/cards/4D.png"
+  },
+  {
+    "suit": "D",
+    "rank": 5,
+    "id": "5D",
+    "pipCount": 5,
+    "file": "assets/cards/5D.png"
+  },
+  {
+    "suit": "D",
+    "rank": 6,
+    "id": "6D",
+    "pipCount": 6,
+    "file": "assets/cards/6D.png"
+  },
+  {
+    "suit": "D",
+    "rank": 7,
+    "id": "7D",
+    "pipCount": 7,
+    "file": "assets/cards/7D.png"
+  },
+  {
+    "suit": "D",
+    "rank": 8,
+    "id": "8D",
+    "pipCount": 8,
+    "file": "assets/cards/8D.png"
+  },
+  {
+    "suit": "D",
+    "rank": 9,
+    "id": "9D",
+    "pipCount": 9,
+    "file": "assets/cards/9D.png"
+  },
+  {
+    "suit": "D",
+    "rank": 10,
+    "id": "10D",
+    "pipCount": 10,
+    "file": "assets/cards/10D.png"
+  },
+  {
+    "suit": "D",
+    "rank": 11,
+    "id": "JD",
+    "pipCount": 0,
+    "file": "assets/cards/JD.png"
+  },
+  {
+    "suit": "D",
+    "rank": 12,
+    "id": "QD",
+    "pipCount": 0,
+    "file": "assets/cards/QD.png"
+  },
+  {
+    "suit": "D",
+    "rank": 13,
+    "id": "KD",
+    "pipCount": 0,
+    "file": "assets/cards/KD.png"
+  },
+  {
+    "suit": "C",
+    "rank": 14,
+    "id": "AC",
+    "pipCount": 1,
+    "file": "assets/cards/AC.png"
+  },
+  {
+    "suit": "C",
+    "rank": 2,
+    "id": "2C",
+    "pipCount": 2,
+    "file": "assets/cards/2C.png"
+  },
+  {
+    "suit": "C",
+    "rank": 3,
+    "id": "3C",
+    "pipCount": 3,
+    "file": "assets/cards/3C.png"
+  },
+  {
+    "suit": "C",
+    "rank": 4,
+    "id": "4C",
+    "pipCount": 4,
+    "file": "assets/cards/4C.png"
+  },
+  {
+    "suit": "C",
+    "rank": 5,
+    "id": "5C",
+    "pipCount": 5,
+    "file": "assets/cards/5C.png"
+  },
+  {
+    "suit": "C",
+    "rank": 6,
+    "id": "6C",
+    "pipCount": 6,
+    "file": "assets/cards/6C.png"
+  },
+  {
+    "suit": "C",
+    "rank": 7,
+    "id": "7C",
+    "pipCount": 7,
+    "file": "assets/cards/7C.png"
+  },
+  {
+    "suit": "C",
+    "rank": 8,
+    "id": "8C",
+    "pipCount": 8,
+    "file": "assets/cards/8C.png"
+  },
+  {
+    "suit": "C",
+    "rank": 9,
+    "id": "9C",
+    "pipCount": 9,
+    "file": "assets/cards/9C.png"
+  },
+  {
+    "suit": "C",
+    "rank": 10,
+    "id": "10C",
+    "pipCount": 10,
+    "file": "assets/cards/10C.png"
+  },
+  {
+    "suit": "C",
+    "rank": 11,
+    "id": "JC",
+    "pipCount": 0,
+    "file": "assets/cards/JC.png"
+  },
+  {
+    "suit": "C",
+    "rank": 12,
+    "id": "QC",
+    "pipCount": 0,
+    "file": "assets/cards/QC.png"
+  },
+  {
+    "suit": "C",
+    "rank": 13,
+    "id": "KC",
+    "pipCount": 0,
+    "file": "assets/cards/KC.png"
+  },
+  {
+    "suit": "S",
+    "rank": 14,
+    "id": "AS",
+    "pipCount": 1,
+    "file": "assets/cards/AS.png"
+  },
+  {
+    "suit": "S",
+    "rank": 2,
+    "id": "2S",
+    "pipCount": 2,
+    "file": "assets/cards/2S.png"
+  },
+  {
+    "suit": "S",
+    "rank": 3,
+    "id": "3S",
+    "pipCount": 3,
+    "file": "assets/cards/3S.png"
+  },
+  {
+    "suit": "S",
+    "rank": 4,
+    "id": "4S",
+    "pipCount": 4,
+    "file": "assets/cards/4S.png"
+  },
+  {
+    "suit": "S",
+    "rank": 5,
+    "id": "5S",
+    "pipCount": 5,
+    "file": "assets/cards/5S.png"
+  },
+  {
+    "suit": "S",
+    "rank": 6,
+    "id": "6S",
+    "pipCount": 6,
+    "file": "assets/cards/6S.png"
+  },
+  {
+    "suit": "S",
+    "rank": 7,
+    "id": "7S",
+    "pipCount": 7,
+    "file": "assets/cards/7S.png"
+  },
+  {
+    "suit": "S",
+    "rank": 8,
+    "id": "8S",
+    "pipCount": 8,
+    "file": "assets/cards/8S.png"
+  },
+  {
+    "suit": "S",
+    "rank": 9,
+    "id": "9S",
+    "pipCount": 9,
+    "file": "assets/cards/9S.png"
+  },
+  {
+    "suit": "S",
+    "rank": 10,
+    "id": "10S",
+    "pipCount": 10,
+    "file": "assets/cards/10S.png"
+  },
+  {
+    "suit": "S",
+    "rank": 11,
+    "id": "JS",
+    "pipCount": 0,
+    "file": "assets/cards/JS.png"
+  },
+  {
+    "suit": "S",
+    "rank": 12,
+    "id": "QS",
+    "pipCount": 0,
+    "file": "assets/cards/QS.png"
+  },
+  {
+    "suit": "S",
+    "rank": 13,
+    "id": "KS",
+    "pipCount": 0,
+    "file": "assets/cards/KS.png"
+  }
+]

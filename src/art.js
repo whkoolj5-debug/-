@@ -1,8 +1,18 @@
 import sharp from 'sharp';
+// Bound native image workers and cache for small hosting plans.
+sharp.cache({memory:12,files:0,items:64});
+sharp.concurrency(1);
 import path from 'node:path';
+import {tmpdir} from 'node:os';
+import {mkdirSync} from 'node:fs';
+function ensureFontCache(){
+ if(!process.env.XDG_CACHE_HOME)process.env.XDG_CACHE_HOME=path.join(tmpdir(),'rsf-poker-cache');
+ mkdirSync(path.join(process.env.XDG_CACHE_HOME,'fontconfig'),{recursive:true});
+}
 process.env.FONTCONFIG_FILE=path.resolve('assets/fonts/fonts.conf');
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {makeDeck,rankLabel} from './poker-engine.js';
+import {showdown,streetName,actionName,tableTheme} from './table-view.js';
 export const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 export function pip(s,x,y,size=28,flip=false){
  const paths={H:'M0,9 C-25,-5 -17,-24 0,-12 C17,-24 25,-5 0,9Z',D:'M0,-22 15,-2 0,18 -15,-2Z',S:'M0,-24 C-6,-14 -25,-3 -16,7 C-10,15 -3,8 -2,5 L-5,19 H5 L2,5 C3,8 10,15 16,7 C25,-3 6,-14 0,-24Z',C:'M-5,-7 C-21,-17 -27,7 -10,9 C-5,10 -2,6 -2,4 L-5,19 H5 L2,4 C2,6 5,10 10,9 C27,7 21,-17 5,-7 C18,-29 -18,-29 -5,-7Z'};
@@ -23,6 +33,7 @@ export function cardSVG(c){
  return `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="252"><rect x="1" y="1" width="178" height="250" rx="12" fill="#fffdf8" stroke="#c2c5ca" stroke-width="2"/><g fill="${color}">${idx}<g transform="translate(180 252) rotate(180)">${idx}</g>${center}</g></svg>`;
 }
 export async function generateCards(){
+ ensureFontCache();
  await mkdir('assets/cards',{recursive:true});
  const deck=['H','D','C','S'].flatMap(s=>[14,2,3,4,5,6,7,8,9,10,11,12,13].map(rank=>makeDeck().find(c=>c.suit===s&&c.rank===rank)));
  const layers=[];const manifest=[];
@@ -40,18 +51,73 @@ export async function handImage(cards){
  return sharp({create:{width:cards.length*192+12,height:276,channels:4,background:'#20222b'}}).composite(layers).png().toBuffer();
 }
 export async function renderTable(t){
- const pos=[[838,162],[903,288],[838,412],[510,468],[188,412],[120,288],[187,162]];
- const labels=t.seats.map((id,i)=>{
-  if(!id)return '';
-  const [x,y]=pos[i],p=t.players[id],chips=t.hand?(t.hand.seats[id]?.chips??0):t.startingMoney;
-  return `<rect x="${x-54}" y="${y-30}" width="108" height="60" rx="12" fill="#fffdf8" stroke="${t.hand?.turn===id?'#edb94e':'#9c9caa'}" stroke-width="3"/><text x="${x}" y="${y-7}" fill="#171921" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-size="13" font-weight="bold">${i+1} · ${esc(p.name.slice(0,9))}</text><text x="${x}" y="${y+14}" fill="#303844" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-size="13">${chips.toLocaleString('en-US')}</text>${t.hand?.folded.includes(id)?`<text x="${x}" y="${y+47}" text-anchor="middle" fill="#ffe4e4" font-size="13">FOLD</text>`:''}`;
- }).join('');
- const info=`<text x="512" y="216" fill="#fff4cb" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-size="19">${t.hand?`POT ${t.hand.pot.toLocaleString('en-US')} · ${t.hand.street.toUpperCase()}`:'TEXAS HOLD’EM'}</text>`;
- const layers=[{input:Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="576">${labels}${info}</svg>`),left:0,top:0}];
- if(t.hand)for(let i=0;i<5;i++){
-  const c=t.hand.board[i];
-  const input=c?await sharp(`assets/cards/${c.id}.png`).resize(64,90).toBuffer():Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="90"><rect x="1" y="1" width="62" height="88" rx="6" fill="#07581f" stroke="#54a46b" stroke-dasharray="4 4"/></svg>');
-  layers.push({input,left:336+i*72,top:237});
+ ensureFontCache();
+ const width=1200,height=780,h=t.hand,theme=tableTheme(t);
+ const pos=[[600,130],[951,199],[1036,431],[812,636],[388,636],[164,431],[249,199]];
+ const fmt=n=>Number(n||0).toLocaleString('en-US');
+ const text=(x,y,label,size=16,color='#e4efef',extra='')=>`<text x="${x}" y="${y}" fill="${color}" font-family="Noto Sans KR, sans-serif" font-size="${size}" ${extra}>${esc(label)}</text>`;
+ const center='text-anchor="middle"';
+ const stage=h?.done?'HAND COMPLETE':h?streetName(h.street).toUpperCase():'WAITING FOR PLAYERS';
+ const winners=new Set(h?.done?h.results.flatMap(r=>Object.keys(r.payouts)):[]);
+ const revealed=new Map((h?.publicShowdown??showdown(h)).map(p=>[p.id,p.cards]));
+ let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+ <defs>
+  <radialGradient id="bg"><stop stop-color="#1a3139"/><stop offset="1" stop-color="#0a111b"/></radialGradient>
+  <radialGradient id="felt"><stop stop-color="${theme.felt[0]}"/><stop offset="1" stop-color="${theme.felt[1]}"/></radialGradient>
+  <linearGradient id="rail" x2="0" y2="1"><stop stop-color="#36434d"/><stop offset="1" stop-color="#18232d"/></linearGradient>
+  <linearGradient id="gold"><stop stop-color="#f9db96"/><stop offset="1" stop-color="#b78b45"/></linearGradient>
+  <pattern id="weave" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0L6 6M6 0L0 6" stroke="#e0ffff" stroke-opacity=".025"/></pattern>
+ </defs>
+ <rect width="1200" height="780" fill="url(#bg)"/>
+ <path d="M40 72H1160" stroke="#253541"/>
+ ${text(42,42,'RSF',26,'#e4c486','font-weight="bold"')}${text(103,42,'POKER CLUB',17,'#dce7e8','letter-spacing="3"')}
+ ${text(1156,39,`${t.demo?'DEMO · ':t.replay?'REPLAY · ':t.displayMode==='test'?'TEST MODE · ':''}${h?`HAND #${String(t.handNo).padStart(3,'0')}`:'PRIVATE TABLE'}`,15,'#92aaa9','text-anchor="end" letter-spacing="2"')}
+ <ellipse cx="600" cy="389" rx="482" ry="237" fill="#030a10" opacity=".7"/>
+ <ellipse cx="600" cy="375" rx="480" ry="237" fill="url(#rail)" stroke="#43515b" stroke-width="2"/>
+ <ellipse cx="600" cy="375" rx="453" ry="211" fill="url(#felt)" stroke="#091d23" stroke-width="6"/>
+ <ellipse cx="600" cy="375" rx="443" ry="201" fill="url(#weave)" stroke="#52917f" stroke-opacity=".3"/>
+ ${text(600,208,stage,13,'#a2c7b7',center+' letter-spacing="3"')}
+ ${text(600,234,`BLINDS  ${fmt(t.smallBlind)} / ${fmt(t.bigBlind)}`,12,'#81aaa0',center)}
+ <rect x="480" y="252" width="240" height="46" rx="23" fill="#082b29" stroke="#408b76"/>
+ ${text(600,282,h?`POT  ${fmt(h.pot)}`:'TEXAS HOLD’EM',22,'#f2dca9',center+' font-weight="bold"')}
+ ${text(600,443,h?.done?'RESULTS BELOW':h?`CURRENT BET  ${fmt(h.currentBet)}`:`${t.seats.filter(Boolean).length} / 7 PLAYERS`,14,'#a7c8ba',center+' letter-spacing="1"')}
+ ${text(600,485,'RSF · TEXAS HOLD’EM',12,'#69998d',center+' letter-spacing="4"')}`;
+ const cardLayers=[];
+ for(let i=0;i<5;i++){
+  const left=384+i*88,top=316,c=h?.board[i];
+  if(c)cardLayers.push({input:await sharp(`assets/cards/${c.id}.png`).resize(80,112).toBuffer(),left,top});
+  else svg+=`<rect x="${left}" y="${top}" width="80" height="112" rx="9" fill="#092e2b" fill-opacity=".55" stroke="#548f7b" stroke-opacity=".55" stroke-dasharray="5 5"/>${text(left+40,top+65,'RSF',13,'#49806f',center+' letter-spacing="2"')}`;
  }
- return sharp('assets/table.png').composite(layers).png().toBuffer();
+ const dealer=h?.ids[h.dealerIndex],small=h?.ids[h.sbIndex],big=h?.ids[h.bbIndex];
+ for(let i=0;i<7;i++){
+  const id=t.seats[i],[x,y]=pos[i];
+  if(!id){svg+=`<rect x="${x-91}" y="${y-32}" width="182" height="74" rx="18" fill="#101f29" fill-opacity=".75" stroke="#3a4a53" stroke-dasharray="5 5"/>${text(x,y-1,`SEAT ${i+1}`,12,'#738b96',center+' letter-spacing="2"')}${text(x,y+23,'참가 가능',12,'#94aaa9',center)}`;continue;}
+  const p=t.players[id],seat=h?.seats[id],chips=h?(seat?.chips??0):t.startingMoney;
+  const turn=!h?.done&&h?.turn===id,win=winners.has(id),folded=h?.folded.includes(id),out=p.quit||(h&&!seat);
+  const color=win?'#edcf83':turn?'#55e4c4':out||folded?'#40505b':'#526773';
+  if(turn||win)svg+=`<rect x="${x-101}" y="${y-42}" width="202" height="100" rx="22" fill="${color}" opacity=".12"/>`;
+  svg+=`<rect x="${x-95}" y="${y-36}" width="190" height="88" rx="18" fill="${turn?'#183e3b':win?'#343228':'#14212c'}" stroke="${color}" stroke-width="${turn||win?3:1.5}"/>`;
+  svg+=`<circle cx="${x-67}" cy="${y-7}" r="17" fill="${turn?'#4de1bd':'#293d48'}"/>${text(x-67,y-1,i+1,14,turn?'#0b3028':'#aec4c9',center+' font-weight="bold"')}`;
+  svg+=text(x-38,y-6,Array.from(p.name).slice(0,9).join('')+(Array.from(p.name).length>9?'…':''),14,folded||out?'#82969b':'#eef4ef','font-weight="bold"');
+  svg+=text(x-38,y+23,fmt(chips),21,win?'#f5d787':turn?'#60e6c8':'#e2eae5','font-weight="bold"');
+  const status=win?'WINNER':p.quit?'영구 포기':out?'탈락':folded?'FOLD':seat?.chips===0?'ALL-IN':turn?'YOUR TURN':'';
+  if(status)svg+=text(x,y+70,status,11,color,center+' letter-spacing="1"');
+  const badges=[];if(id===dealer)badges.push(['D','#f1dfae']);if(id===small)badges.push(['SB','#82b9e0']);if(id===big)badges.push(['BB','#e3a084']);
+  badges.forEach(([label,fill],j)=>{svg+=`<circle cx="${x+65-j*29}" cy="${y-39}" r="13" fill="${fill}" stroke="#14212c" stroke-width="2"/>${text(x+65-j*29,y-35,label,10,'#14212c',center+' font-weight="bold"')}`;});
+  if(seat?.bet>0&&!h.done){const bx=Math.round(x+(600-x)*.31),by=Math.round(y+(375-y)*.34);svg+=`<rect x="${bx-38}" y="${by-12}" width="76" height="24" rx="12" fill="#092522" stroke="#639080"/><circle cx="${bx-24}" cy="${by}" r="6" fill="#d7bb78"/>${text(bx+7,by+4,fmt(seat.bet),11,'#e8d9b2',center)}`;}
+  if(seat&&!folded&&!out){
+   const top=i===0?y-24:y>500?y-91:y+78;
+   const cardX=i===0?x+112:x-37;
+   if(revealed.has(id)){
+    for(const [n,c] of revealed.get(id).entries())cardLayers.push({input:await sharp(`assets/cards/${c.id}.png`).resize(34,48).toBuffer(),left:cardX+n*40,top});
+   }else if(!h.done){
+    for(let n=0;n<2;n++)svg+=`<rect x="${cardX+8+n*31}" y="${top}" width="27" height="38" rx="4" fill="#173343" stroke="#7f9b9b"/><path d="M${cardX+13+n*31} ${top+7}l17 24m0-24l-17 24" stroke="#48727a"/>`;
+   }
+  }
+ }
+ let footer='친구들과 즐기는 텍사스 홀덤 · 개인 카드는 나에게만 표시됩니다';
+ if(h?.done)footer=h.results.flatMap(r=>Object.entries(r.payouts).map(([id,n])=>`${t.players[id]?.name||'플레이어'} +${fmt(n)}`)).join('  /  ');
+ else if(h?.log?.length){const a=h.log.at(-1);footer=`최근 행동 · ${t.players[a.id]?.name||'플레이어'} ${actionName(a.kind)}${a.amount?` +${fmt(a.amount)}`:''}`;}
+ svg+=`<rect x="40" y="728" width="1120" height="34" rx="10" fill="#101e29"/>${text(600,750,Array.from(footer).slice(0,68).join(''),13,h?.done?'#f1d599':'#93b1b5',center)}</svg>`;
+ return sharp(Buffer.from(svg)).composite(cardLayers).png().toBuffer();
 }

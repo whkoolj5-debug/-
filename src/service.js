@@ -1,4 +1,5 @@
 import {newHand,act} from './game.js';
+import {rememberHand,publicFrame} from './table-view.js';
 export class Service{
  constructor(store,economy){this.store=store;this.economy=economy;this.tables=new Map(store.load().map(t=>[t.id,t]));}
  save(t){this.store.save(t);return t;}
@@ -27,16 +28,32 @@ export class Service{
  next(t,u){this.owner(t,u);if(t.status!=='playing'||t.hand&&!t.hand.done)throw Error('현재 판이 끝난 뒤 진행하세요.');
   const ids=t.seats.filter(id=>id&&!t.players[id].quit&&(!t.hand||t.hand.seats[id]?.chips>0));
   if(ids.length<2)throw Error('진행 가능한 인원이 부족합니다.');
+  rememberHand(t);
   const old=t.hand;const previousDealer=old?.ids[old.dealerIndex];
   let dealer=0;if(previousDealer){const n=t.seats.indexOf(previousDealer);for(let i=1;i<=7;i++){const candidate=t.seats[(n+i)%7];if(ids.includes(candidate)){dealer=ids.indexOf(candidate);break;}}}
   t.hand=newHand(ids.map(id=>({id,chips:old?old.seats[id].chips:t.startingMoney})),dealer,t.smallBlind,t.bigBlind);
-  t.handNo++;t.lastAction=Date.now();this.save(t);
+  // Revisions never repeat across hands: old private buttons cannot act in a new hand.
+  t.hand.rev+=(old?.rev??-1)+1;
+  t.handNo++;t.lastAction=Date.now();
+  t.hand.log=[{id:t.hand.ids[t.hand.sbIndex],kind:'small',amount:t.hand.seats[t.hand.ids[t.hand.sbIndex]].bet,street:'preflop'},
+   {id:t.hand.ids[t.hand.bbIndex],kind:'big',amount:t.hand.seats[t.hand.ids[t.hand.bbIndex]].bet,street:'preflop'}];
+  t.hand.opening=publicFrame(t.hand,t.players);
+  this.save(t);
  }
- action(t,u,kind,target,rev){this.require(t);if(t.status!=='playing'||!t.hand||t.hand.done)throw Error('진행 중인 판이 없습니다.');if(rev!==t.hand.rev)throw Error('화면이 갱신되었습니다. 최신 버튼을 이용해주세요.');
-  act(t.hand,u,kind,target);if(kind==='surrender')t.players[u].quit=true;t.lastAction=Date.now();this.save(t);
+ action(t,u,kind,target,rev,source='player'){this.require(t);if(t.status!=='playing'||!t.hand||t.hand.done)throw Error('진행 중인 판이 없습니다.');if(rev!==t.hand.rev)throw Error('화면이 갱신되었습니다. 최신 버튼을 이용해주세요.');
+  const before=t.hand.contributions[u]||0,street=t.hand.street;
+  act(t.hand,u,kind,target);
+  if(kind==='surrender')t.players[u].quit=true;
+  // Winnings may already be added by act(); committed chips are tracked independently.
+  const entry={id:u,kind,automatic:source==='timeout',amount:(t.hand.contributions[u]||0)-before,street};
+  t.hand.actionCount=(t.hand.actionCount||0)+1;
+  t.hand.log=[...(t.hand.log||[]),{...entry,frame:publicFrame(t.hand,t.players)}].slice(-200);
+  rememberHand(t);
+  t.lastAction=Date.now();this.save(t);
  }
  async finish(t){
   if(t.status==='closed')return;
+  rememberHand(t);
   if(t.status==='lobby')throw Error('대기 테이블은 취소를 사용하세요.');
   const alive=t.seats.filter(id=>id&&!t.players[id].quit&&t.hand?.seats[id]?.chips>0);
   if(t.status==='playing'&&(!t.hand.done||alive.length>1))return;

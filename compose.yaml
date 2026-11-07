@@ -1,0 +1,12 @@
+services:
+  poker:
+    build: .
+    restart: unless-stopped
+    stop_grace_period: 25s
+    env_file: .env
+    volumes:
+      - poker-data:/app/data
+    ports:
+      - "127.0.0.1:3000:3000"
+volumes:
+  poker-data:

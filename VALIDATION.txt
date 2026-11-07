@@ -1,0 +1,30 @@
+RSF Poker Club 2.1.0 — 검증 결과
+
+환경: Node.js v24.22.1 / Linux x64
+날짜: 2026-11-07 (Asia/Seoul)
+
+npm ci --cache /workspace/work/npm-cache: 성공 (변경된 lockfile로 재설치).
+npm test: 43개 통과 / 실패 0.
+검사 범위: 족보·52장 카드·300개 무작위 게임 칩 보존, 사이드팟, 짧은 올인,
+참가/취소/정산 및 모호한 외부 거래 오류 처리, DB 복구,
+빠른 베팅·변조/중복/이전 판 버튼 차단, 개인 카드 비공개,
+실제 Discord 핸들러를 모의 상호작용으로 실행,
+12개 연속 판의 칩 보존과 최근 10판 복구,
+공개 기록·다시보기의 미래 상태/비공개 패 누출 방지,
+테이블 PNG의 개인 패 변경 전후 바이트 비교 및 3가지 테마 렌더링.
+
+모든 src/*.js와 scripts/*.js: node --check 통과.
+npm audit: info/low/moderate/high/critical 모두 0 (검사 시점 기준).
+sharp: 0.34.5 → 0.35.5 (확인된 high 취약점 해결).
+npm run preview: 토큰 없이 7인 데모, 3테마, 개인 카드, 첫 단계 다시보기 생성.
+이미지 크기: 1200×780. 출력 이미지를 열어 배치와 한글 표시 검토.
+미리보기 프로세스 최대 RSS: 실행별 약 127~150MiB. 실제 Gateway 연결은 포함하지 않음.
+
+외부 Discord 서버와 실제 언빌리버봇 API: 토큰 미제공으로 종단간 미검증.
+실제 Windows에서 cmd 실행, Docker 빌드, 디스호스트 배포: 이 환경에서 미실행.
+Windows용 스크립트는 UTF-8/CRLF, cwd 고정, 실패 후 창 유지로 작성함.
+실제 PC/디스호스트는 이 검증만으로 수정되지 않음. GitHub 반영 여부는 package.json의 버전으로 확인. 적용 방법은 UPDATE-GUIDE-KO.md 참조.
+
+원본 엔진/경제/SQLite 스키마는 유지. DB JSON에 테마/공개 판 기록 필드를 추가함.
+이전 판에 존재하지 않는 행동/다시보기 기록은 소급 생성하지 않음.
+실제 토큰, .env, DB, node_modules는 배포 ZIP에 포함하지 않음.
