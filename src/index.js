@@ -38,7 +38,7 @@ client.on(Events.InteractionCreate,i=>{
 });});
 client.once(Events.ClientReady,async()=>{
  console.log(`Ready: ${client.user.tag} · RSF Poker ${version} (${mode})`);
- const schema='prefix-economy-v1';
+ const schema='table-end-v1';
  if(store.db.prepare("SELECT value FROM metadata WHERE key='command_schema'").get()?.value!==schema){
   await serial(async()=>{try{
    await client.rest.put(Routes.applicationGuildCommands(config.clientId,config.guildId),{body:commands});

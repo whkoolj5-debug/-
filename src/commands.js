@@ -7,6 +7,7 @@ export const commands=[
  .addSubcommand(c=>c.setName('기록').setDescription('최근 완료된 판의 공용 카드·행동·결과 확인').addIntegerOption(o=>o.setName('판').setDescription('보관된 판 번호 (생략 시 최근 판)').setMinValue(1)))
  .addSubcommand(c=>c.setName('카드').setDescription('나에게만 내 카드 표시'))
  .addSubcommand(c=>c.setName('카드목록').setDescription('정확한 52장 카드 이미지 미리보기')),
+ new SlashCommandBuilder().setName('테이블').setDescription('테이블 종료').addSubcommand(c=>c.setName('종료').setDescription('방장 전용: 테이블 강제 종료 및 칩 반환')),
  new SlashCommandBuilder().setName('빅').setDescription('블라인드 설정').addSubcommandGroup(g=>g.setName('스몰').setDescription('블라인드').addSubcommand(c=>c.setName('설정').setDescription('방장 전용 블라인드 순차 설정'))),
  new SlashCommandBuilder().setName('ㅈㅈ').setDescription('남은 칩을 전부 판에 넣고 포기 (확인 필요)'),
  new SlashCommandBuilder().setName('포커거래').setDescription('관리자 거래 확인').setDefaultMemberPermissions(PermissionFlagsBits.Administrator)

@@ -1,3 +1,10 @@
+# 2.4.0
+
+- Ask host for a survivor threshold on table creation; allow lobby changes.
+- Settle each player’s remaining chips after a completed hand reaches the threshold.
+- Add owner-only /테이블 종료 with confirmation and stale-state checks. Void an unfinished hand and return its commitments before idempotent settlement.
+- Automatically refresh guild slash commands on startup.
+
 # Table button cleanup
 
 - Remove card/history/surrender/theme/refresh buttons from the shared table; keep /포커 카드, /포커 기록 and /ㅈㅈ commands.

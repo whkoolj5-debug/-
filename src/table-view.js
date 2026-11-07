@@ -26,7 +26,7 @@ export function bettingInfo(h){
 }
 // Only non-folded hands at a genuine showdown are public. An uncontested win never exposes cards.
 export function showdown(h){
- if(!h?.done||h.board.length!==5)return [];
+ if(h?.aborted||!h?.done||h.board.length!==5)return [];
  const ids=h.ids.filter(id=>!h.folded.includes(id));
  if(ids.length<2)return [];
  return ids.map(id=>({id,cards:h.holeCards[id],category:evaluateHand([...h.holeCards[id],...h.board]).category}));

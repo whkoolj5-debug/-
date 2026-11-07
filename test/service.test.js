@@ -49,3 +49,21 @@ test('exactly two seated players can start; heads-up dealer posts SB and acts fi
  await v.finish(t);assert.equal(t.status,'playing');v.next(t,'a');assert.equal(t.hand.ids[t.hand.dealerIndex],'b');
  assert.equal(Object.values(t.hand.seats).reduce((n,p)=>n+p.chips,0)+t.hand.pot,2000);s.close();
 });
+
+test('host force-end returns current commitments, never leaks a river hand, and prevents duplicate credits',async()=>{
+ const {s,e,v}=setup(),t=await v.create('force','g','c','a','A',1000);await v.join(t,'b','B',1);v.blinds(t,'a',20,10);v.start(t,'a');
+ await assert.rejects(()=>v.forceEnd(t,'b'),/방장/);assert.equal(t.status,'playing');
+ await v.forceEnd(t,'a');assert.equal(t.status,'closed');assert(t.hand.aborted);for(const id of ['a','b'])assert.equal((await e.balance('g',id)).balance,5000000);
+ await v.finish(t);for(const id of ['a','b'])assert.equal((await e.balance('g',id)).balance,5000000);s.close();
+});
+test('configured survivor threshold settles only after a completed hand and returns chip balances',async()=>{
+ const {s,e,v}=setup(),t=await v.create('threshold','g','c','a','A',1000);for(const [n,id]of ['b','c'].entries())await v.join(t,id,id,n+1);v.blinds(t,'a',20,10);
+ assert.throws(()=>v.setEndCount(t,'b',2),/방장/);v.setEndCount(t,'a',2);v.start(t,'a');await v.finish(t);assert.equal(t.status,'playing');
+ // Complete a real hand with one permanent surrender and the other player folding.
+ v.action(t,'a','surrender',null,t.hand.rev);v.action(t,t.hand.turn,'fold',null,t.hand.rev);
+ const chips=Object.fromEntries(t.seats.filter(Boolean).map(id=>[id,t.hand.seats[id]?.chips||0]));await v.finish(t);assert.equal(t.status,'closed');
+ for(const id of Object.keys(chips))assert.equal((await e.balance('g',id)).balance,4999000+chips[id]);s.close();
+});
+test('ending in lobby refunds buy-ins; configured stop count requires a larger starting field',async()=>{
+ const {s,e,v}=setup(),t=await v.create('lobby-end','g','c','a','A',1000);await v.join(t,'b','B',1);v.blinds(t,'a',20,10);v.setEndCount(t,'a',2);assert.throws(()=>v.start(t,'a'));await v.forceEnd(t,'a');assert.equal(t.status,'closed');assert.equal((await e.balance('g','a')).balance,5000000);s.close();
+});

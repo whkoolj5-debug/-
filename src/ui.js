@@ -21,7 +21,7 @@ export function publicRows(t){
  return [...controls,...actions,...rows(info.presets.map(p=>btn(`quick_${p.key}${tag}`,`${p.label} → ${money(p.total)}`))),...hostRows(t)];
 }
 export function hostRows(t){
- if(t.status==='lobby')return rows([btn(`biginput:${t.id}`,'BIG / SMALL 설정',ButtonStyle.Primary),btn(`start:${t.id}`,'START',ButtonStyle.Success,!t.blindsConfirmed||t.seats.filter(Boolean).length<MIN_PLAYERS),btn(`cancel:${t.id}`,'대기 테이블 취소',ButtonStyle.Danger)]);
+ if(t.status==='lobby')return rows([btn(`biginput:${t.id}`,'BIG / SMALL 설정',ButtonStyle.Primary),btn(`start:${t.id}`,'START',ButtonStyle.Success,t.endCountConfirmed===false||!t.blindsConfirmed||t.seats.filter(Boolean).length<Math.max(MIN_PLAYERS,(t.endAtPlayers||1)+1)),btn(`cancel:${t.id}`,'대기 테이블 취소',ButtonStyle.Danger),btn(`endsetup:${t.id}`,'종료 인원 설정')]);
  if(t.status==='playing')return rows([...(t.hand?.done?[btn(`next:${t.id}`,'다음 판 시작',ButtonStyle.Success)]:[])]);
  if(['refunding','settling'].includes(t.status))return rows([btn(`retry:${t.id}`,'정산 이어서 처리',ButtonStyle.Primary)]);
  return [];
@@ -30,6 +30,8 @@ export function embed(t,mode,turnSeconds=90){
  const h=t.hand;
  const state={lobby:'참가 대기',playing:h?.done?'판 종료':'게임 진행',closed:'정산 완료',paused:'거래 확인 대기',settling:'정산 중',refunding:'환불 중'}[t.status]||t.status;
  let text=`**${state}** · 참가 **${t.seats.filter(Boolean).length}/7** · 시작머니 **${money(t.startingMoney)}**\n블라인드 **${money(t.smallBlind)} / ${money(t.bigBlind)}**\n`;
+ text+=`종료 조건: **${t.endCountConfirmed===false?'방장 설정 대기':(t.endAtPlayers||1)+'명 이하 생존 시 종료'}** · 남은 칩은 잔액으로 반환\n`;
+ if(t.forcedEnd)text+='방장이 테이블을 종료했습니다. 진행 중이던 판은 무효 처리되었습니다.\n';
  if(mode==='test')text+='🧪 **테스트 잔액 · 실제 서버 잔액 사용 안 함**\n';
  if(h){
   text+=`\n**HAND #${t.handNo} · ${streetName(h.street)} · 팟 ${money(h.pot)}**\n공용 카드: ${cardText(h.board)||'공개 전'}\n`;

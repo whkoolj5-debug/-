@@ -57,6 +57,7 @@ async function handle(i){
  if(i.guildId!==config.guildId)throw Error('설정된 서버에서만 사용할 수 있습니다.');
  if(i.isChatInputCommand()){
   const sub=i.options.getSubcommand(false);
+  if(i.commandName==='테이블'&&sub==='종료'){const t=find(i);service.owner(t,i.user.id);return i.reply({...E,content:'테이블을 종료할까요? 진행 중인 판은 무효 처리하고, 그 판에 넣은 칩과 남은 칩을 반환합니다. 이미 완료된 판의 결과는 유지합니다.',components:confirm('endtable',t,`:${t.handNo}:${t.hand?.rev??0}`)});}
   if(i.commandName==='포커'){
    if(sub==='만들기'&&find(i)?.ownerId===i.user.id)return panel(i,find(i));
    if(sub==='만들기')return i.reply({...E,content:'게임 스타팅머니를 정해주세요.',components:rows([btn('createinput','시작머니 입력',ButtonStyle.Primary)])});
@@ -90,6 +91,10 @@ async function handle(i){
   }
   if(a==='history')return history(i,t,v===undefined?undefined:Number(v),v!==undefined);
   if(a==='export'){const records=[...(t.history||[])],current=handSummary(t);if(current&&!records.some(h=>h.handNo===current.handNo))records.push(current);return i.reply({...E,content:'공용 카드·공개된 쇼다운·행동·순증감만 포함합니다. 폴드한 패와 덱은 제외됩니다.',files:[new AttachmentBuilder(Buffer.from(JSON.stringify(records.slice(-10),null,2)),{name:'rsf-hand-history.json'})]});}
+  if(a==='endsetup'){service.owner(t,i.user.id);if(t.status!=='lobby')throw Error('게임 시작 전에만 설정할 수 있습니다.');return i.reply({...E,content:'몇 명 이하가 남으면 종료할까요? 선택한 인원보다 많은 사람이 참가해야 시작할 수 있습니다.',components:rows([1,2,3,4,5,6].map(count=>btn(`endcount:${t.id}:${count}`,`${count}명`,ButtonStyle.Primary)))});}
+  if(a==='endcount'){service.setEndCount(t,i.user.id,Number(v));await i.update({content:`${v}명 이하가 남으면 판 종료 후 테이블을 닫고 남은 칩을 잔액으로 반환합니다.`,components:[]});return render(t);}
+  if(a==='endtableno')return i.update({content:'종료를 취소했습니다.',components:[]});
+  if(a==='endtableyes'){service.owner(t,i.user.id);if(Number(v)!==t.handNo||Number(w)!==(t.hand?.rev??0))throw Error('게임 상태가 바뀌었습니다. /테이블 종료를 다시 사용해주세요.');await i.deferUpdate();await service.forceEnd(t,i.user.id);await i.editReply({content:'테이블을 종료하고 남은 칩을 잔액으로 반환했습니다.',components:[]});return render(t);}
   if(a==='refresh'){service.owner(t,i.user.id);await i.deferUpdate();if(i.message?.flags?.has(MessageFlags.Ephemeral))panels.set(t.id,i);return render(t);}
   if(a==='theme'){service.owner(t,i.user.id);const keys=Object.keys(themes);t.theme=keys[(keys.indexOf(t.theme||'emerald')+1)%keys.length];service.save(t);await i.deferUpdate();return render(t);}
   if(a==='cards')return cards(i,t);
@@ -134,7 +139,7 @@ async function handle(i){
    const existing=find(i);
    if(existing?.ownerId===i.user.id){await i.editReply({content:'이전에 만든 테이블을 다시 표시합니다. 참가비를 추가로 차감하지 않습니다.',components:hostRows(existing)});panels.set(existing.id,i);return render(existing);}
    const t=await service.create(randomUUID().slice(0,12),i.guildId,i.channelId,i.user.id,i.member.displayName,n);
-   await i.editReply({content:`테이블이 만들어졌습니다. 시작머니 ${money(n)}${mode==='test'?' (테스트)':''}`,components:hostRows(t)});if(i.message?.flags?.has(MessageFlags.Ephemeral))panels.set(t.id,i);return render(t);
+   t.endCountConfirmed=false;service.save(t);await i.editReply({content:`테이블이 만들어졌습니다. 시작머니 ${money(n)}\n몇 명이 남으면 테이블을 종료할까요? (1~6명)\n완료된 판 기준이며 각자의 남은 칩을 잔액으로 반환합니다.`,components:rows([1,2,3,4,5,6].map(count=>btn(`endcount:${t.id}:${count}`,`${count}명`,ButtonStyle.Primary)))});if(i.message?.flags?.has(MessageFlags.Ephemeral))panels.set(t.id,i);return render(t);
   }
   const t=table(id,i);
   if(a==='big'){service.owner(t,i.user.id);if(t.status!=='lobby')throw Error('게임 시작 전만 설정 가능합니다.');if(n>t.startingMoney)throw Error('시작머니 이하로 입력해주세요.');

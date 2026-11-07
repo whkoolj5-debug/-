@@ -58,8 +58,8 @@ export async function renderTable(t){
  const fmt=n=>Number(n||0).toLocaleString('en-US');
  const text=(x,y,label,size=16,color='#e4efef',extra='')=>`<text x="${x}" y="${y}" fill="${color}" font-family="Noto Sans KR, sans-serif" font-size="${size}" ${extra}>${esc(label)}</text>`;
  const center='text-anchor="middle"';
- const stage=h?.done?'HAND COMPLETE':h?streetName(h.street).toUpperCase():'WAITING FOR PLAYERS';
- const winners=new Set(h?.done?h.results.flatMap(r=>Object.keys(r.payouts)):[]);
+ const stage=h?.aborted?'HAND VOID':h?.done?'HAND COMPLETE':h?streetName(h.street).toUpperCase():'WAITING FOR PLAYERS';
+ const winners=new Set(h?.done&&!h.aborted?h.results.flatMap(r=>Object.keys(r.payouts)):[]);
  const revealed=new Map((h?.publicShowdown??showdown(h)).map(p=>[p.id,p.cards]));
  let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 1200 780">
  <defs>

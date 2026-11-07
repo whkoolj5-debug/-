@@ -24,7 +24,7 @@ export class Service{
   t.seats[seat]=u;t.players[u]={name,quit:false};delete t.intent;this.save(t);
  }
  blinds(t,u,big,small){this.owner(t,u);if(t.status!=='lobby')throw Error('게임 시작 전만 설정할 수 있습니다.');if(!(small>0&&small<=big&&big<=t.startingMoney))throw Error('스몰 ≤ 빅 ≤ 시작머니로 입력해주세요.');t.bigBlind=big;t.smallBlind=small;t.blindsConfirmed=true;this.save(t);}
- start(t,u){this.owner(t,u);if(t.status!=='lobby'||t.seats.filter(Boolean).length<MIN_PLAYERS||!t.blindsConfirmed)throw Error('최소 2명과 블라인드 확정이 필요합니다.');t.status='playing';this.next(t,u);}
+ start(t,u){this.owner(t,u);if(t.endCountConfirmed===false||t.status!=='lobby'||t.seats.filter(Boolean).length<Math.max(MIN_PLAYERS,(t.endAtPlayers||1)+1)||!t.blindsConfirmed)throw Error('최소 2명과 블라인드 확정이 필요합니다.');t.status='playing';this.next(t,u);}
  next(t,u){this.owner(t,u);if(t.status!=='playing'||t.hand&&!t.hand.done)throw Error('현재 판이 끝난 뒤 진행하세요.');
   const ids=t.seats.filter(id=>id&&!t.players[id].quit&&(!t.hand||t.hand.seats[id]?.chips>0));
   if(ids.length<2)throw Error('진행 가능한 인원이 부족합니다.');
@@ -56,7 +56,7 @@ export class Service{
   rememberHand(t);
   if(t.status==='lobby')throw Error('대기 테이블은 취소를 사용하세요.');
   const alive=t.seats.filter(id=>id&&!t.players[id].quit&&t.hand?.seats[id]?.chips>0);
-  if(t.status==='playing'&&(!t.hand.done||alive.length>1))return;
+  if(t.status==='playing'&&(!t.hand.done||alive.length>(t.endAtPlayers||1)))return;
   if(!['playing','settling'].includes(t.status))return;
   t.status='settling';this.save(t);
   for(const id of t.seats.filter(Boolean)){
@@ -64,6 +64,18 @@ export class Service{
     if(amount)await this.economy.move(`${t.id}:pay:${id}`,t.guildId,id,amount);
   }
   t.status='closed';this.save(t);
+ }
+ setEndCount(t,u,n){this.owner(t,u);if(t.status!=='lobby'||!Number.isInteger(n)||n<1||n>6)throw Error('종료 인원은 시작 전에 1~6명으로 설정하세요.');t.endAtPlayers=n;t.endCountConfirmed=true;this.save(t);}
+ async forceEnd(t,u){
+  this.owner(t,u);
+  if(t.status==='lobby'||t.status==='refunding')return this.cancel(t,u);
+  if(!['playing','settling'].includes(t.status))throw Error('거래 확인 후 종료해주세요.');
+  if(t.status==='playing'&&!t.hand.done){
+   const h=t.hand;const payouts={};
+   for(const id of h.ids){const n=h.contributions[id]||0;h.seats[id].chips+=n;if(n)payouts[id]=n;}
+   h.results=[{amount:h.pot,winners:[],payouts}];h.aborted=true;h.done=true;h.rev++;h.turn=null;
+  }
+  t.forcedEnd=true;t.status='settling';this.save(t);await this.finish(t);
  }
  async cancel(t,u){this.owner(t,u);if(t.status!=='lobby'&&t.status!=='refunding')throw Error('게임 시작 전만 취소할 수 있습니다.');
   t.status='refunding';this.save(t);
