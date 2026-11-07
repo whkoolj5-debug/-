@@ -38,7 +38,7 @@ client.on(Events.InteractionCreate,i=>{
 });});
 client.once(Events.ClientReady,async()=>{
  console.log(`Ready: ${client.user.tag} · RSF Poker ${version} (${mode})`);
- const schema='table-end-v1';
+ const schema='guild-ranking-auto-hand-v1';
  if(store.db.prepare("SELECT value FROM metadata WHERE key='command_schema'").get()?.value!==schema){
   await serial(async()=>{try{
    await client.rest.put(Routes.applicationGuildCommands(config.clientId,config.guildId),{body:commands});
@@ -53,7 +53,7 @@ client.once(Events.ClientReady,async()=>{
 const timer=setInterval(()=>{
  if(closing||!client.isReady())return;
  serial(async()=>{await runTimeouts();await refreshClocks();}).catch(e=>console.error('턴 처리:',e.message));
-},5000);timer.unref();
+},1000);timer.unref();
 const server=createServer((_req,res)=>{
  const ready=!closing&&client.isReady();
  res.writeHead(ready?200:503,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'});

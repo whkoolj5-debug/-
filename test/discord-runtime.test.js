@@ -12,15 +12,15 @@ function validateComponents(payload){
 }
 async function setup(){
  const store=new Store(':memory:'),economy=new Economy(store),service=new Service(store,economy),messages=[];
- const message={id:'m',edit:async payload=>{validateComponents(payload);messages.push(payload);}};
- const channel={guildId:'g',guild:{members:{me:{id:'bot'}}},permissionsFor:()=>new PermissionsBitField(Object.values(PermissionFlagsBits)),isTextBased:()=>true,messages:{fetch:async()=>message},send:async payload=>{validateComponents(payload);messages.push(payload);return message;}};
+ const messageMap=new Map(),deleted=[];
+ const channel={guildId:'g',guild:{members:{me:{id:'bot'}}},permissionsFor:()=>new PermissionsBitField(Object.values(PermissionFlagsBits)),isTextBased:()=>true,messages:{fetch:async id=>{if(!messageMap.has(id))throw Object.assign(Error('Unknown Message'),{code:10008});return messageMap.get(id);}},send:async payload=>{validateComponents(payload);messages.push(payload);const id=`m${messageMap.size+deleted.length}`;const message={id,edit:async p=>{validateComponents(p);messages.push(p);},delete:async()=>{deleted.push(id);messageMap.delete(id);}};messageMap.set(id,message);return message;}};
  const client={channels:{fetch:async()=>channel}};
  const config={mode:'test',guildId:'g',turnSeconds:90};
  const runtime=createDiscordRuntime({client,store,economy,service,config,renderTableImage:async()=>Buffer.from('image-fixture'),renderHandImage:async()=>Buffer.from('private-fixture'),renderBoardImage:async()=>Buffer.from('board-fixture')});
  const t=await service.create('t','g','c','a','A',1000);
  for(const [n,id] of ['b','c','d','e'].entries())await service.join(t,id,id,n+1);
  service.blinds(t,'a',20,10);service.start(t,'a');
- return {store,economy,service,t,messages,runtime,channel,client};
+ return {store,economy,service,t,messages,runtime,channel,client,deleted};
 }
 function interaction({user='a',button,command,sub,modal,value,guild='g',number}={}){
  const calls=[];
@@ -30,13 +30,13 @@ function interaction({user='a',button,command,sub,modal,value,guild='g',number}=
   reply:async payload=>(validateComponents(payload),calls.push(['reply',payload])),deferReply:async payload=>calls.push(['deferReply',payload]),editReply:async payload=>(validateComponents(payload),calls.push(['editReply',payload])),
   deferUpdate:async()=>calls.push(['deferUpdate']),update:async payload=>(validateComponents(payload),calls.push(['update',payload])),showModal:async payload=>calls.push(['modal',payload.toJSON()])};
 }
-test('actual Discord handler keeps cards private and gives only the acting player betting controls',async()=>{
+test('actual Discord handler shows only private cards with no action buttons',async()=>{
  const {store,runtime,t}=await setup();const user=t.hand.turn;
  for(const id of [user,'a']){
   const i=interaction({user:id,button:'cards:t'});await runtime.handle(i);
   assert.equal(i.calls[0][0],'deferReply');assert.equal(i.calls[0][1].flags,MessageFlags.Ephemeral);
   const payload=i.calls.at(-1)[1];assert.equal(payload.files[0].name,'my-cards.png');
-  assert.equal(payload.components.length>0,id===user);
+  assert.equal(payload.components.length,0);assert.match(payload.content,/내 카드표/);
  }store.close();
 });
 test('actual handler accepts legal quick bets, persists state, edits the table, and rejects double clicks',async()=>{
@@ -152,4 +152,24 @@ test('tagged previous/next replay and history IDs route correctly at navigation 
   const i=interaction({user:'a',button:customId});await runtime.handle(i);assert(i.calls.length);validateComponents(i.calls.at(-1)[1]);
  }
  store.close();
+});
+
+test('guild /족보 posts the branded image',async()=>{
+ const {runtime,store}=await setup(),i=interaction({command:'족보'});await runtime.handle(i);assert.equal(i.calls[0][0],'reply');assert.equal(i.calls[0][1].files[0].attachment,'assets/rsf-hand-rankings.webp');store.close();
+});
+test('finished-hand board is deleted and next hand starts after five seconds, updating private cards without buttons',async()=>{
+ const {runtime,service,t,store,deleted}=await setup();
+ const i=interaction({user:'a',command:'포커',sub:'카드'});await runtime.handle(i);
+ while(t.hand.street!=='flop')service.action(t,t.hand.turn,t.hand.seats[t.hand.turn].bet<t.hand.currentBet?'call':'check',null,t.hand.rev);
+ await runtime.render(t);const boardId=t.boardMessageId;assert(boardId);assert.notEqual(boardId,t.messageId);
+ while(!t.hand.done)service.action(t,t.hand.turn,t.hand.seats[t.hand.turn].bet<t.hand.currentBet?'call':'check',null,t.hand.rev);
+ await runtime.postAction(t);assert(deleted.includes(boardId));assert.equal(t.boardMessageId,null);const deadline=t.nextHandAt;
+ await runtime.runTimeouts(deadline-1);assert.equal(t.handNo,1);
+ await runtime.runTimeouts(deadline);assert.equal(t.handNo,2);assert.equal(t.hand.done,false);assert.equal(t.nextHandAt,undefined);
+ const payload=i.calls.at(-1)[1];assert.match(payload.content,/내 카드표/);assert.equal(payload.components.length,0);assert.equal(payload.files.length,1);store.close();
+});
+test('joining opens a private waiting card sheet that fills at START without a card command',async()=>{
+ const {runtime,service,store}=await setup();const t=await service.create('new','g','c','owner','O',1000);service.blinds(t,'owner',20,10);
+ const i=interaction({user:'new-user',button:'seat:new:1'});await runtime.handle(i);assert.match(i.calls.at(-1)[1].content,/게임이 시작되면/);
+ await runtime.handle(interaction({user:'owner',button:'start:new'}));const payload=i.calls.at(-1)[1];assert.match(payload.content,/내 카드표/);assert.equal(payload.files[0].name,'my-cards.png');assert.deepEqual(payload.components,[]);store.close();
 });

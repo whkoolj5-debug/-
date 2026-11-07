@@ -1,5 +1,6 @@
 import {SlashCommandBuilder,PermissionFlagsBits} from 'discord.js';
 export const commands=[
+ new SlashCommandBuilder().setName('족보').setDescription('Royal Straight Flush 길드 포커 족보 이미지'),
  new SlashCommandBuilder().setName('포커').setDescription('텍사스 홀덤')
  .addSubcommandGroup(g=>g.setName('테이블').setDescription('테이블 관리').addSubcommand(c=>c.setName('만들기').setDescription('시작머니를 정하고 테이블 생성')))
  .addSubcommand(c=>c.setName('관리').setDescription('방장 전용 START 및 설정'))

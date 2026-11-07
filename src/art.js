@@ -52,7 +52,7 @@ export async function handImage(cards){
 }
 export async function renderTable(t){
  ensureFontCache();
- const width=1800,height=1170,scale=1.5,h=t.hand,theme=tableTheme(t);
+ const width=3000,height=1950,scale=2.5,h=t.hand,theme=tableTheme(t);
  const clock=turnClock(t,t.clockNow??Date.now());
  const pos=[[600,130],[951,199],[1036,431],[812,636],[388,636],[164,431],[249,199]];
  const fmt=n=>Number(n||0).toLocaleString('en-US');
@@ -85,8 +85,8 @@ export async function renderTable(t){
  ${clock?`${text(600,481,'YOUR TURN',34,'#65f4cb',center+' font-weight="bold" letter-spacing="3"')}${text(600,511,(t.players[h.turn]?.name||'').slice(0,20),20,'#ebfff5',center+' font-weight="bold"')}${text(600,541,`TIME LEFT  ${clock.remaining}s`,26,clock.remaining<=15?'#ff877e':'#f4d58a',center+' font-weight="bold"')}<rect x="460" y="553" width="280" height="8" rx="4" fill="#092d2a"/><rect x="460" y="553" width="${Math.round(280*clock.ratio)}" height="8" rx="4" fill="${clock.remaining<=15?'#ff877e':'#65f4cb'}"/>`:text(600,485,'RSF · TEXAS HOLD’EM',12,'#69998d',center+' letter-spacing="4"')}`;
  const cardLayers=[];
  for(let i=0;i<5;i++){
-  const left=384+i*88,top=316,c=h?.board[i];
-  if(c)cardLayers.push({input:await sharp(`assets/cards/${c.id}.png`).resize(120,168).toBuffer(),left:Math.round(left*scale),top:Math.round(top*scale)});
+  const left=384+i*88,top=316,c=h?.done&&!t.replay?null:h?.board[i];
+  if(c)cardLayers.push({input:await sharp(`assets/cards/${c.id}.png`).resize(Math.round(80*scale),Math.round(112*scale)).toBuffer(),left:Math.round(left*scale),top:Math.round(top*scale)});
   else svg+=`<rect x="${left}" y="${top}" width="80" height="112" rx="9" fill="#092e2b" fill-opacity=".55" stroke="#548f7b" stroke-opacity=".55" stroke-dasharray="5 5"/>${text(left+40,top+65,'RSF',13,'#49806f',center+' letter-spacing="2"')}`;
  }
  const dealer=h?.ids[h.dealerIndex],small=h?.ids[h.sbIndex],big=h?.ids[h.bbIndex];
@@ -110,7 +110,7 @@ export async function renderTable(t){
    const top=i===0?y-24:y>500?y-91:y+78;
    const cardX=i===0?x+112:x-37;
    if(revealed.has(id)){
-    for(const [n,c] of revealed.get(id).entries())cardLayers.push({input:await sharp(`assets/cards/${c.id}.png`).resize(51,72).toBuffer(),left:Math.round((cardX+n*40)*scale),top:Math.round(top*scale)});
+    for(const [n,c] of revealed.get(id).entries())cardLayers.push({input:await sharp(`assets/cards/${c.id}.png`).resize(Math.round(34*scale),Math.round(48*scale)).toBuffer(),left:Math.round((cardX+n*40)*scale),top:Math.round(top*scale)});
    }else if(!h.done){
     for(let n=0;n<2;n++)svg+=`<rect x="${cardX+8+n*31}" y="${top}" width="27" height="38" rx="4" fill="#173343" stroke="#7f9b9b"/><path d="M${cardX+13+n*31} ${top+7}l17 24m0-24l-17 24" stroke="#48727a"/>`;
    }

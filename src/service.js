@@ -34,7 +34,7 @@ export class Service{
   t.hand=newHand(ids.map(id=>({id,chips:old?old.seats[id].chips:t.startingMoney})),dealer,t.smallBlind,t.bigBlind);
   // Revisions never repeat across hands: old private buttons cannot act in a new hand.
   t.hand.rev+=(old?.rev??-1)+1;
-  t.handNo++;t.lastAction=Date.now();
+  delete t.nextHandAt;t.handNo++;t.lastAction=Date.now();
   t.hand.log=[{id:t.hand.ids[t.hand.sbIndex],kind:'small',amount:t.hand.seats[t.hand.ids[t.hand.sbIndex]].bet,street:'preflop'},
    {id:t.hand.ids[t.hand.bbIndex],kind:'big',amount:t.hand.seats[t.hand.ids[t.hand.bbIndex]].bet,street:'preflop'}];
   t.hand.opening=publicFrame(t.hand,t.players);

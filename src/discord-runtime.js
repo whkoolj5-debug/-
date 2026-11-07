@@ -13,11 +13,12 @@ export function amount(s){if(!/^(?:[1-9]\d*|[1-9]\d{0,2}(?:,\d{3})+)$/.test(s.tr
 export function createDiscordRuntime({client,store,economy,service,config,renderTableImage=renderTable,renderHandImage=handImage,renderBoardImage=boardImage}){
  const {mode}=config;
  const E={flags:MessageFlags.Ephemeral};
- const panels=new Map(),drafts=new Map(),boardKeys=new Map(),clockRenders=new Map();
+ const panels=new Map(),drafts=new Map(),boardKeys=new Map(),clockRenders=new Map(),cardViews=new Map();
 function modal(i,id,title,label){return i.showModal(new ModalBuilder().setCustomId(id).setTitle(title).addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('amount').setLabel(label).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(15))));}
 const find=i=>service.forUser(i.guildId,i.user.id);
 function table(id,i){const t=service.tables.get(id);if(t?.guildId!==i.guildId)throw Error('이 서버의 테이블이 아닙니다.');return t;}
 async function render(t){
+ if(t.status==='playing'&&t.hand?.done&&!t.nextHandAt){t.nextHandAt=Date.now()+5000;service.save(t);}
  const channel=await tableChannel(client,t.channelId,t.guildId);
  const stamp=`${t.id}-${t.handNo||0}-${t.hand?.rev||0}-${randomUUID().slice(0,8)}`;
  const tableName=`table-${stamp}.png`;
@@ -27,10 +28,15 @@ async function render(t){
  if(t.messageId){try{const m=await channel.messages.fetch(t.messageId);await m.edit({...payload,attachments:[]});}catch(e){if(e.code!==10008)throw accessError(e);t.messageId=null;}}
  if(!t.messageId){let m;try{m=await channel.send({...payload,allowedMentions:{users:[t.ownerId]}});}catch(error){throw accessError(error);}t.messageId=m.id;service.save(t);}
  clockRenders.set(t.id,Date.now());
+ const showBoard=t.status==='playing'&&!t.hand?.done&&t.hand?.board.length;
+ if(!showBoard&&t.boardMessageId){
+  try{await (await channel.messages.fetch(t.boardMessageId)).delete();}catch(e){if(e.code!==10008)throw accessError(e);}
+  t.boardMessageId=null;boardKeys.delete(t.id);service.save(t);
+ }
  const boardKey=JSON.stringify([t.handNo,t.hand?.street,t.hand?.board]);
- if((t.hand?.board.length||t.boardMessageId)&&boardKeys.get(t.id)!==boardKey){
-  const boardName=`board-${stamp}.png`,board=t.hand?.board||[];
-  const boardPayload={content:`# Community Cards · ${board.length?streetName(t.hand.street):'Waiting for flop'} · Hand #${t.handNo}\n${cardText(board)}`,files:[new AttachmentBuilder(await renderBoardImage(board,t.hand?.street),{name:boardName})],allowedMentions:{parse:[]}};
+ if(showBoard&&boardKeys.get(t.id)!==boardKey){
+  const boardName=`board-${stamp}.png`,board=t.hand.board;
+  const boardPayload={content:`# Community Cards · ${streetName(t.hand.street)} · Hand #${t.handNo}\n${cardText(board)}`,files:[new AttachmentBuilder(await renderBoardImage(board,t.hand.street),{name:boardName})],allowedMentions:{parse:[]}};
   if(t.boardMessageId){try{await (await channel.messages.fetch(t.boardMessageId)).edit({...boardPayload,attachments:[]});}catch(e){if(e.code!==10008)throw accessError(e);t.boardMessageId=null;}}
   if(!t.boardMessageId){t.boardMessageId=(await channel.send(boardPayload)).id;service.save(t);}
   boardKeys.set(t.id,boardKey);
@@ -43,26 +49,33 @@ async function history(i,t,handNo,update=false){
  const payload={attachments:[],content:page.content,components:historyRows(t,page.selected),allowedMentions:{parse:[]}};
  return update?i.update(payload):i.reply({...E,...payload});
 }
+function rememberCardView(i,t){cardViews.set(`${t.id}:${i.user.id}`,{i,expires:Date.now()+14*60*1000,handNo:null});}
+async function showCardView(t,entry){
+ const cards=t.hand?.holeCards[entry.i.user.id];if(!cards||t.players[entry.i.user.id]?.quit||entry.expires<Date.now())return;
+ await entry.i.editReply({content:'## 🃏 내 카드표 · 나에게만 표시',embeds:[],attachments:[],files:[new AttachmentBuilder(await renderHandImage(cards),{name:'my-cards.png'})],components:[],allowedMentions:{parse:[]}});
+ entry.handNo=t.handNo;
+}
+async function updatePrivateCards(t){
+ for(const [key,entry]of cardViews){if(entry.expires<Date.now()){cardViews.delete(key);continue;}if(key.startsWith(t.id+':')&&entry.handNo!==t.handNo&&t.hand)try{await showCardView(t,entry);}catch{cardViews.delete(key);}}
+}
 async function cards(i,t){
- service.require(t);const h=t.hand,c=h?.holeCards[i.user.id];if(!c||t.players[i.user.id]?.quit)throw Error('이번 판에 받은 카드가 없습니다.');
- await i.deferReply(E);
- const ownTurn=!h.done&&h.turn===i.user.id,info=bettingInfo(h);
- const category=h.board.length>=3?`\n현재 내 족보: **${evaluateHand([...c,...h.board]).category}** (승리를 보장하지 않습니다.)`:'';
- await i.editReply({content:`🃏 내 카드 · 이 채널에서 나에게만 표시됩니다.${category}\n${ownTurn?`지금 내 차례 · 콜 ${money(info.call)} · 빠른 베팅은 라운드 총액입니다.`:'행동은 내 차례에만 가능합니다. 최신 테이블 버튼을 사용해주세요.'}`,files:[new AttachmentBuilder(await renderHandImage(c),{name:'my-cards.png'})],components:ownTurn?publicRows(t):[]});
+ service.require(t);if(!t.hand?.holeCards[i.user.id]||t.players[i.user.id]?.quit)throw Error('이번 판에 받은 카드가 없습니다.');
+ await i.deferReply(E);rememberCardView(i,t);await showCardView(t,cardViews.get(`${t.id}:${i.user.id}`));
 }
 async function surrender(i,t){service.require(t);if(t.status!=='playing'||t.hand.done||!t.hand.seats[i.user.id]||t.players[i.user.id]?.quit)throw Error('진행 중인 참가자만 포기할 수 있습니다.');await i.reply({...E,content:'정말 포기하겠습니까?\n남은 칩 전부를 판에 넣고 폴드하며, 승리해도 팟을 받을 수 없습니다.',components:confirm('quit',t,`:${t.handNo}`)});}
-async function postAction(t){await service.finish(t);await render(t);}
+async function postAction(t){await service.finish(t);await render(t);await updatePrivateCards(t);}
 async function handle(i){
  if(!i.inGuild())throw Error('서버 채널에서 사용해주세요.');
  if(i.guildId!==config.guildId)throw Error('설정된 서버에서만 사용할 수 있습니다.');
  if(i.isChatInputCommand()){
   const sub=i.options.getSubcommand(false);
+  if(i.commandName==='족보')return i.reply({files:[new AttachmentBuilder('assets/rsf-hand-rankings.webp',{name:'RSF-hand-rankings.webp'})],allowedMentions:{parse:[]}});
   if(i.commandName==='테이블'&&sub==='종료'){const t=find(i);service.owner(t,i.user.id);return i.reply({...E,content:'테이블을 종료할까요? 진행 중인 판은 무효 처리하고, 그 판에 넣은 칩과 남은 칩을 반환합니다. 이미 완료된 판의 결과는 유지합니다.',components:confirm('endtable',t,`:${t.handNo}:${t.hand?.rev??0}`)});}
   if(i.commandName==='포커'){
    if(sub==='만들기'&&find(i)?.ownerId===i.user.id)return panel(i,find(i));
    if(sub==='만들기')return i.reply({...E,content:'게임 스타팅머니를 정해주세요.',components:rows([btn('createinput','시작머니 입력',ButtonStyle.Primary)])});
    if(sub==='관리')return panel(i,find(i));
-   if(sub==='도움말')return i.reply({...E,content:'잔액·송금·관리자 지급 안내는 !help를 입력하세요.\n① /포커 테이블 만들기 → 시작머니 입력\n② /빅 스몰 설정 → 방장만 설정\n③ 2명 이상 참가 → 방장이 테이블 아래 START\n④ 채널에서 /포커 카드 → 본인 전용 카드 확인 → 내 차례에 행동\n⑤ 판 종료 → 방장이 다음 판 시작\n\n콜은 표시된 금액만 추가합니다. 레이즈와 빠른 베팅의 숫자는 이번 라운드 총액입니다. 팟 버튼은 콜 후 팟 크기만큼 레이즈합니다. ㅈㅈ는 일반 폴드와 달리 남은 칩 전액을 기부하고 영구 포기합니다.\n/포커 기록으로 이전 판 결과와 순증감을 확인할 수 있습니다.'});
+   if(sub==='도움말')return i.reply({...E,content:'잔액·송금·관리자 지급 안내는 !help를 입력하세요.\n① /포커 테이블 만들기 → 시작머니 입력\n② /빅 스몰 설정 → 방장만 설정\n③ 2명 이상 참가 → 방장이 테이블 아래 START\n④ 참가 시 열린 본인 전용 화면에 개인 카드 자동 표시 → 내 차례에 행동\n⑤ 판 종료 → 방장이 다음 판 시작\n\n콜은 표시된 금액만 추가합니다. 레이즈와 빠른 베팅의 숫자는 이번 라운드 총액입니다. 팟 버튼은 콜 후 팟 크기만큼 레이즈합니다. ㅈㅈ는 일반 폴드와 달리 남은 칩 전액을 기부하고 영구 포기합니다.\n/포커 기록으로 이전 판 결과와 순증감을 확인할 수 있습니다.'});
    if(sub==='기록'){const t=find(i)||[...service.tables.values()].filter(t=>t.guildId===i.guildId&&t.seats.includes(i.user.id)).at(-1);if(!t)throw Error('참가했던 테이블이 없습니다.');return history(i,t,i.options.getInteger('판')??undefined);}
    if(sub==='카드')return cards(i,find(i));
    if(sub==='카드목록')return i.reply({...E,files:[new AttachmentBuilder('assets/deck-preview.png',{name:'52-cards.png'})]});
@@ -92,7 +105,7 @@ async function handle(i){
   if(a==='history')return history(i,t,v===undefined?undefined:Number(v),v!==undefined);
   if(a==='export'){const records=[...(t.history||[])],current=handSummary(t);if(current&&!records.some(h=>h.handNo===current.handNo))records.push(current);return i.reply({...E,content:'공용 카드·공개된 쇼다운·행동·순증감만 포함합니다. 폴드한 패와 덱은 제외됩니다.',files:[new AttachmentBuilder(Buffer.from(JSON.stringify(records.slice(-10),null,2)),{name:'rsf-hand-history.json'})]});}
   if(a==='endsetup'){service.owner(t,i.user.id);if(t.status!=='lobby')throw Error('게임 시작 전에만 설정할 수 있습니다.');return i.reply({...E,content:'몇 명 이하가 남으면 종료할까요? 선택한 인원보다 많은 사람이 참가해야 시작할 수 있습니다.',components:rows([1,2,3,4,5,6].map(count=>btn(`endcount:${t.id}:${count}`,`${count}명`,ButtonStyle.Primary)))});}
-  if(a==='endcount'){service.setEndCount(t,i.user.id,Number(v));await i.update({content:`${v}명 이하가 남으면 판 종료 후 테이블을 닫고 남은 칩을 잔액으로 반환합니다.`,components:[]});return render(t);}
+  if(a==='endcount'){service.setEndCount(t,i.user.id,Number(v));rememberCardView(i,t);await i.update({content:`## 🃏 내 카드표 · 나에게만 표시\n${v}명 이하가 남으면 종료합니다. 게임이 시작되면 카드가 여기에 표시됩니다.`,components:[]});return render(t);}
   if(a==='endtableno')return i.update({content:'종료를 취소했습니다.',components:[]});
   if(a==='endtableyes'){service.owner(t,i.user.id);if(Number(v)!==t.handNo||Number(w)!==(t.hand?.rev??0))throw Error('게임 상태가 바뀌었습니다. /테이블 종료를 다시 사용해주세요.');await i.deferUpdate();await service.forceEnd(t,i.user.id);await i.editReply({content:'테이블을 종료하고 남은 칩을 잔액으로 반환했습니다.',components:[]});return render(t);}
   if(a==='refresh'){service.owner(t,i.user.id);await i.deferUpdate();if(i.message?.flags?.has(MessageFlags.Ephemeral))panels.set(t.id,i);return render(t);}
@@ -104,7 +117,7 @@ async function handle(i){
    await i.deferReply(E);if((await economy.balance(i.guildId,i.user.id)).balance<t.startingMoney)throw Error('balance가 부족합니다.');
    return i.editReply({content:'몇번테이블에 참여하실건가요?',components:rows(t.seats.map((u,n)=>btn(`seat:${id}:${n}`,String(n+1),ButtonStyle.Secondary,Boolean(u))))});
   }
-  if(a==='seat'){await i.deferUpdate();await service.join(t,i.user.id,i.member.displayName,Number(v));await i.editReply({content:`${Number(v)+1}번 자리에 참여했습니다.`,components:[]});return render(t);}
+  if(a==='seat'){await i.deferUpdate();await service.join(t,i.user.id,i.member.displayName,Number(v));rememberCardView(i,t);await i.editReply({content:`## 🃏 내 카드표 · 나에게만 표시\n${Number(v)+1}번 자리에 참여했습니다. 게임이 시작되면 카드가 여기에 표시됩니다.`,components:[]});return render(t);}
   if(['biginput','smallinput','blindyes','blindno','start','next','cancel','cancelyes','cancelno','retry'].includes(a))service.owner(t,i.user.id);
   if(a==='biginput'){if(t.status!=='lobby')throw Error('게임 시작 전만 설정 가능합니다.');drafts.delete(`${t.id}:${i.user.id}`);return modal(i,`big:${id}`,'빅블라인드 설정','빅블라인드 금액을 설정해주세요');}
   if(a==='smallinput'){const d=drafts.get(`${id}:${i.user.id}`);if(!d||d.nonce!==v)throw Error('설정을 처음부터 다시 시작해주세요.');return modal(i,`small:${id}:${v}`,'스몰 블라인드 설정','스몰 블라인드 금액을 설정해주세요');}
@@ -113,7 +126,7 @@ async function handle(i){
    const d=drafts.get(`${id}:${i.user.id}`);if(!d||d.nonce!==v||!d.small)throw Error('설정이 만료되었습니다. 다시 설정해주세요.');
    service.blinds(t,i.user.id,d.big,d.small);drafts.delete(`${id}:${i.user.id}`);await i.update({content:'블라인드 설정이 확정되었습니다.',components:[]});return render(t);
   }
-  if(a==='start'||a==='next'){await i.deferUpdate();if(a==='start')service.start(t,i.user.id);else service.next(t,i.user.id);await postAction(t);return;}
+  if(a==='start'||a==='next'){await i.deferReply(E);rememberCardView(i,t);if(a==='start')service.start(t,i.user.id);else service.next(t,i.user.id);await postAction(t);return;}
   if(a==='cancel')return i.reply({...E,content:'대기 테이블을 취소하고 참가비를 모두 반환할까요?',components:confirm('cancel',t)});
   if(a==='cancelno'||a==='quitno')return i.update({content:'취소했습니다. 게임을 계속합니다.',components:[]});
   if(a==='cancelyes'){await i.deferUpdate();await service.cancel(t,i.user.id);await i.editReply({content:'참가비 반환을 완료했습니다.',components:[]});return render(t);}
@@ -126,10 +139,10 @@ async function handle(i){
    service.require(t);if(t.hand?.turn!==i.user.id)throw Error('본인 차례가 아닙니다.');
    if(Number(v)!==t.hand.rev)throw Error('최신 버튼을 이용해주세요.');
    if(a.startsWith('quick_')){
-    await i.deferReply(E);const total=quickBet(service,t,i.user.id,a.slice(6),Number(v));await i.editReply(`총 ${money(total)} 베팅을 반영했습니다.`);return postAction(t);
+    await i.deferReply(E);rememberCardView(i,t);const total=quickBet(service,t,i.user.id,a.slice(6),Number(v));await i.editReply(`총 ${money(total)} 베팅을 반영했습니다.`);return postAction(t);
    }
    if(a==='raise')return modal(i,`bet:${id}:${v}`,'베팅 / 레이즈','이번 라운드의 내 총 베팅액');
-   await i.deferReply(E);service.action(t,i.user.id,a,null,Number(v));await i.editReply('행동을 반영했습니다.');return postAction(t);
+   await i.deferReply(E);rememberCardView(i,t);service.action(t,i.user.id,a,null,Number(v));await i.editReply('행동을 반영했습니다.');return postAction(t);
   }
  }
  if(i.isModalSubmit()){
@@ -148,13 +161,17 @@ async function handle(i){
    service.owner(t,i.user.id);const d=drafts.get(`${id}:${i.user.id}`);if(!d||d.nonce!==v)throw Error('설정을 다시 시작해주세요.');if(n>d.big)throw Error('스몰은 빅 이하로 입력해주세요.');d.small=n;
    return i.reply({...E,content:`빅블라인드 금액 ${money(d.big)} 스몰블라인드금액 ${money(n)}이 맞나요?`,components:confirm('blind',t,`:${v}`)});
   }
-  if(a==='bet'){await i.deferReply(E);service.action(t,i.user.id,'raise',n,Number(v));await i.editReply('베팅을 반영했습니다.');return postAction(t);}
+  if(a==='bet'){await i.deferReply(E);rememberCardView(i,t);service.action(t,i.user.id,'raise',n,Number(v));await i.editReply('베팅을 반영했습니다.');return postAction(t);}
  }
 }
 
  async function runTimeouts(now=Date.now()){
   let processed=0;
   for(const t of service.tables.values()){
+   if(t.status==='playing'&&t.hand?.done){
+    try{await service.finish(t);if(t.status==='playing'){if(!t.nextHandAt){t.nextHandAt=now+5000;service.save(t);}else if(now>=t.nextHandAt){service.next(t,t.ownerId);processed++;await postAction(t);}}}catch(error){console.error('다음 판:',t.id,error.message);}
+    continue;
+   }
    if(t.status!=='playing'||t.hand.done||now-t.lastAction<=config.turnSeconds*1000)continue;
    try{
     const h=t.hand;

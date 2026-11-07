@@ -22,7 +22,7 @@ export function publicRows(t){
 }
 export function hostRows(t){
  if(t.status==='lobby')return rows([btn(`biginput:${t.id}`,'BIG / SMALL 설정',ButtonStyle.Primary),btn(`start:${t.id}`,'START',ButtonStyle.Success,t.endCountConfirmed===false||!t.blindsConfirmed||t.seats.filter(Boolean).length<Math.max(MIN_PLAYERS,(t.endAtPlayers||1)+1)),btn(`cancel:${t.id}`,'대기 테이블 취소',ButtonStyle.Danger),btn(`endsetup:${t.id}`,'종료 인원 설정')]);
- if(t.status==='playing')return rows([...(t.hand?.done?[btn(`next:${t.id}`,'다음 판 시작',ButtonStyle.Success)]:[])]);
+ if(t.status==='playing')return [];
  if(['refunding','settling'].includes(t.status))return rows([btn(`retry:${t.id}`,'정산 이어서 처리',ButtonStyle.Primary)]);
  return [];
 }
@@ -31,10 +31,11 @@ export function embed(t,mode,turnSeconds=90){
  const state={lobby:'참가 대기',playing:h?.done?'판 종료':'게임 진행',closed:'정산 완료',paused:'거래 확인 대기',settling:'정산 중',refunding:'환불 중'}[t.status]||t.status;
  let text=`**${state}** · 참가 **${t.seats.filter(Boolean).length}/7** · 시작머니 **${money(t.startingMoney)}**\n블라인드 **${money(t.smallBlind)} / ${money(t.bigBlind)}**\n`;
  text+=`종료 조건: **${t.endCountConfirmed===false?'방장 설정 대기':(t.endAtPlayers||1)+'명 이하 생존 시 종료'}** · 남은 칩은 잔액으로 반환\n`;
+ if(t.status==='playing'&&h?.done&&t.nextHandAt)text+=`다음 판 자동 시작 <t:${Math.floor(t.nextHandAt/1000)}:R> (5초 대기)\n`;
  if(t.forcedEnd)text+='방장이 테이블을 종료했습니다. 진행 중이던 판은 무효 처리되었습니다.\n';
  if(mode==='test')text+='🧪 **테스트 잔액 · 실제 서버 잔액 사용 안 함**\n';
  if(h){
-  text+=`\n**HAND #${t.handNo} · ${streetName(h.street)} · 팟 ${money(h.pot)}**\n공용 카드: ${cardText(h.board)||'공개 전'}\n`;
+  text+=`\n**HAND #${t.handNo} · ${streetName(h.street)} · 팟 ${money(h.pot)}**\n공용 카드: ${h.done?'판 종료 · 카드는 기록에서 확인':cardText(h.board)||'공개 전'}\n`;
   if(!h.done){const info=bettingInfo(h);
    text+=`\n▶ <@${h.turn}> 차례 · 콜 **${money(info.call)}**\n`;
    text+=info.canRaise?`레이즈 총액 **${money(Math.min(info.min,info.max))}~${money(info.max)}**${info.max<info.min?' (올인만 가능)':''}\n`:'현재 레이즈 불가\n';
@@ -47,7 +48,7 @@ export function embed(t,mode,turnSeconds=90){
  text+='\n'+t.seats.map((id,i)=>`${i+1}번 · ${id?`<@${id}> · ${money(h?.seats[id]?.chips??t.startingMoney)} 칩${t.players[id].quit?' · 영구 포기':h?.folded.includes(id)?' · 폴드':''}`:'빈자리'}`).join('\n');
  if(h?.log?.length)text+='\n\n**최근 행동**\n'+h.log.slice(-3).map(a=>`<@${a.id}> ${actionName(a.kind)}${a.automatic?' (시간 초과)':''}${a.amount?` +${money(a.amount)}`:''}`).join('\n');
  if(t.status==='lobby')text+='\n\n2명 이상 참가 + BIG / SMALL 확정 → 방장이 아래 START · 방장 전용 설정은 다른 참가자가 누를 수 없습니다.';
- return new EmbedBuilder().setColor(h?.done?0xd7ad63:Number.parseInt(tableTheme(t).ink.slice(1),16)).setTitle(`RSF POKER · ${t.ownerName}님의 테이블`).setDescription(text.slice(0,4000)).setImage('attachment://table.png').setFooter({text:'설정/START/다음 판은 방장 전용 · 개인 패는 /포커 카드 → 본인에게만 표시'});
+ return new EmbedBuilder().setColor(h?.done?0xd7ad63:Number.parseInt(tableTheme(t).ink.slice(1),16)).setTitle(`RSF POKER · ${t.ownerName}님의 테이블`).setDescription(text.slice(0,4000)).setImage('attachment://table.png').setFooter({text:'설정/START/다음 판은 방장 전용 · 내 카드표는 참가/START 시 본인 전용으로 열림 · 만료 시 /포커 카드'});
 }
 
 export function historyRows(t,selected){
