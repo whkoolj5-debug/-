@@ -1,3 +1,12 @@
+# Table button cleanup
+
+- Remove card/history/surrender/theme/refresh buttons from the shared table; keep /포커 카드, /포커 기록 and /ㅈㅈ commands.
+
+# 2.3.1
+
+- Remove automatic DMs. Private cards are shown ephemerally in the game channel through /포커 카드.
+- Public community cards and turn notices remain shared in the game channel.
+
 # 2.3.0
 
 - Large 1800×1170 public table with explicit SMALL BLIND / BIG BLIND amounts.

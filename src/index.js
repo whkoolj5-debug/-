@@ -19,7 +19,7 @@ const store=new Store(config.databasePath);
 const economy=new Economy(store,{mode,token:config.economyToken});
 const service=new Service(store,economy);service.recover();
 const client=new Client({intents:[GatewayIntentBits.Guilds,GatewayIntentBits.GuildMessages]});
-const {handle,render,runTimeouts,refreshClocks,restoreHands}=createDiscordRuntime({client,store,economy,service,config});
+const {handle,render,runTimeouts,refreshClocks}=createDiscordRuntime({client,store,economy,service,config});
 const prefix=createPrefixCommands({store,economy,config,botId:()=>client.user?.id});
 const E={flags:MessageFlags.Ephemeral};
 let chain=Promise.resolve(),busy=0,closing=false;
@@ -47,7 +47,7 @@ client.once(Events.ClientReady,async()=>{
   }catch{console.error('슬래시 명령어 갱신 실패. 필요하면 npm run register를 실행하세요.');}});
  }
 
- for(const t of service.tables.values())if(t.status!=='closed')await serial(async()=>{try{if(t.status==='settling')await service.finish(t);if(t.status==='refunding')await service.cancel(t,t.ownerId);await render(t);await restoreHands(t);}catch(e){console.error('복구:',t.id,e.message);}});
+ for(const t of service.tables.values())if(t.status!=='closed')await serial(async()=>{try{if(t.status==='settling')await service.finish(t);if(t.status==='refunding')await service.cancel(t,t.ownerId);await render(t);}catch(e){console.error('복구:',t.id,e.message);}});
 });
 // Offline recovery is rendered on ready; do not advance restored hands while disconnected.
 const timer=setInterval(()=>{

@@ -1,6 +1,6 @@
 ## 2.3.0 table update
 
-Table images are 1800×1170. SMALL BLIND and BIG BLIND amounts appear on the table. START and host controls are on the public message; only the host can use them. Hole cards are sent privately by DM at the start of each hand, with a private card button when DMs are blocked. Community cards are shared publicly. YOUR TURN and time remaining appear on the image, refreshed every 10 seconds; the Discord deadline updates between refreshes.
+Table images are 1800×1170. SMALL BLIND and BIG BLIND amounts appear on the table. START and host controls are on the public message; only the host can use them. Hole cards appear only to the player in the game channel with /포커 카드. No DMs are sent. Discord requires an interaction before an ephemeral response can be shown. Community cards are shared publicly. YOUR TURN and time remaining appear on the image, refreshed every 10 seconds; the Discord deadline updates between refreshes.
 
 # RSF Poker Club · 디스코드 텍사스 홀덤 봇 2.2
 
@@ -120,7 +120,7 @@ UNBELIEVABOAT_API_KEY=발급받은_API_토큰
 방장은 기본 1번 자리에 앉습니다. 다른 참가자는 공개 참여 버튼 → 회색 1~7 버튼으로 선택합니다.
 좌석 버튼은 디스코드 제한에 맞춰 5개 + 2개로 나뉩니다. 좌석 확정 직전에 잔액을 다시 검사합니다.
 
-방장의 개인 관리 화면이 열려 있으면 2명째 참가 시 START가 자동으로 생깁니다.
+테이블의 START는 2명 이상 참가하고 블라인드를 확정하면 활성화됩니다.
 디스코드 개인 응답의 갱신 가능 시간(약 15분)이 지나거나 봇을 재시작한 경우 `/포커 관리`로 다시 엽니다.
 공개 화면에는 START가 나타나지 않습니다. 모든 시작/설정 동작은 방장 권한도 다시 확인합니다.
 

@@ -5,7 +5,6 @@ import {money,btn,rows,confirm,publicRows,hostRows,embed,historyRows,replayRows}
 import {bettingInfo,handSummary,themes,replayState,streetName,cardText} from './table-view.js';
 import {quickBet,historyPage} from './interactions.js';
 import {accessError,tableChannel} from './channel-access.js';
-import {createHandDelivery} from './hand-delivery.js';
 import {turnClock} from './table-view.js';
 import {evaluateHand} from './poker-engine.js';
 
@@ -15,7 +14,6 @@ export function createDiscordRuntime({client,store,economy,service,config,render
  const {mode}=config;
  const E={flags:MessageFlags.Ephemeral};
  const panels=new Map(),drafts=new Map(),boardKeys=new Map(),clockRenders=new Map();
- const privateHands=createHandDelivery({client,service,renderHandImage,turnSeconds:config.turnSeconds});
 function modal(i,id,title,label){return i.showModal(new ModalBuilder().setCustomId(id).setTitle(title).addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('amount').setLabel(label).setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(15))));}
 const find=i=>service.forUser(i.guildId,i.user.id);
 function table(id,i){const t=service.tables.get(id);if(t?.guildId!==i.guildId)throw Error('이 서버의 테이블이 아닙니다.');return t;}
@@ -50,10 +48,10 @@ async function cards(i,t){
  await i.deferReply(E);
  const ownTurn=!h.done&&h.turn===i.user.id,info=bettingInfo(h);
  const category=h.board.length>=3?`\n현재 내 족보: **${evaluateHand([...c,...h.board]).category}** (승리를 보장하지 않습니다.)`:'';
- await i.editReply({content:`내 카드 · 나에게만 표시됩니다.${category}\n${ownTurn?`지금 내 차례 · 콜 ${money(info.call)} · 빠른 베팅은 라운드 총액입니다.`:'행동은 내 차례에만 가능합니다. 최신 테이블 버튼을 사용해주세요.'}`,files:[new AttachmentBuilder(await renderHandImage(c),{name:'my-cards.png'})],components:ownTurn?publicRows(t).slice(1):[]});
+ await i.editReply({content:`🃏 내 카드 · 이 채널에서 나에게만 표시됩니다.${category}\n${ownTurn?`지금 내 차례 · 콜 ${money(info.call)} · 빠른 베팅은 라운드 총액입니다.`:'행동은 내 차례에만 가능합니다. 최신 테이블 버튼을 사용해주세요.'}`,files:[new AttachmentBuilder(await renderHandImage(c),{name:'my-cards.png'})],components:ownTurn?publicRows(t):[]});
 }
 async function surrender(i,t){service.require(t);if(t.status!=='playing'||t.hand.done||!t.hand.seats[i.user.id]||t.players[i.user.id]?.quit)throw Error('진행 중인 참가자만 포기할 수 있습니다.');await i.reply({...E,content:'정말 포기하겠습니까?\n남은 칩 전부를 판에 넣고 폴드하며, 승리해도 팟을 받을 수 없습니다.',components:confirm('quit',t,`:${t.handNo}`)});}
-async function postAction(t){await service.finish(t);await render(t);await privateHands.notifyTurn(t);}
+async function postAction(t){await service.finish(t);await render(t);}
 async function handle(i){
  if(!i.inGuild())throw Error('서버 채널에서 사용해주세요.');
  if(i.guildId!==config.guildId)throw Error('설정된 서버에서만 사용할 수 있습니다.');
@@ -63,7 +61,7 @@ async function handle(i){
    if(sub==='만들기'&&find(i)?.ownerId===i.user.id)return panel(i,find(i));
    if(sub==='만들기')return i.reply({...E,content:'게임 스타팅머니를 정해주세요.',components:rows([btn('createinput','시작머니 입력',ButtonStyle.Primary)])});
    if(sub==='관리')return panel(i,find(i));
-   if(sub==='도움말')return i.reply({...E,content:'잔액·송금·관리자 지급 안내는 !help를 입력하세요.\n① /포커 테이블 만들기 → 시작머니 입력\n② /빅 스몰 설정 → 방장만 설정\n③ 2명 이상 참가 → 방장이 테이블 아래 START\n④ 개인 카드 자동 DM → 내 차례에 체크/콜/레이즈\n⑤ 판 종료 → 방장이 다음 판 시작\n\n콜은 표시된 금액만 추가합니다. 레이즈와 빠른 베팅의 숫자는 이번 라운드 총액입니다. 팟 버튼은 콜 후 팟 크기만큼 레이즈합니다. ㅈㅈ는 일반 폴드와 달리 남은 칩 전액을 기부하고 영구 포기합니다.\n/포커 기록으로 이전 판 결과와 순증감을 확인할 수 있습니다.'});
+   if(sub==='도움말')return i.reply({...E,content:'잔액·송금·관리자 지급 안내는 !help를 입력하세요.\n① /포커 테이블 만들기 → 시작머니 입력\n② /빅 스몰 설정 → 방장만 설정\n③ 2명 이상 참가 → 방장이 테이블 아래 START\n④ 채널에서 /포커 카드 → 본인 전용 카드 확인 → 내 차례에 행동\n⑤ 판 종료 → 방장이 다음 판 시작\n\n콜은 표시된 금액만 추가합니다. 레이즈와 빠른 베팅의 숫자는 이번 라운드 총액입니다. 팟 버튼은 콜 후 팟 크기만큼 레이즈합니다. ㅈㅈ는 일반 폴드와 달리 남은 칩 전액을 기부하고 영구 포기합니다.\n/포커 기록으로 이전 판 결과와 순증감을 확인할 수 있습니다.'});
    if(sub==='기록'){const t=find(i)||[...service.tables.values()].filter(t=>t.guildId===i.guildId&&t.seats.includes(i.user.id)).at(-1);if(!t)throw Error('참가했던 테이블이 없습니다.');return history(i,t,i.options.getInteger('판')??undefined);}
    if(sub==='카드')return cards(i,find(i));
    if(sub==='카드목록')return i.reply({...E,files:[new AttachmentBuilder('assets/deck-preview.png',{name:'52-cards.png'})]});
@@ -110,7 +108,7 @@ async function handle(i){
    const d=drafts.get(`${id}:${i.user.id}`);if(!d||d.nonce!==v||!d.small)throw Error('설정이 만료되었습니다. 다시 설정해주세요.');
    service.blinds(t,i.user.id,d.big,d.small);drafts.delete(`${id}:${i.user.id}`);await i.update({content:'블라인드 설정이 확정되었습니다.',components:[]});return render(t);
   }
-  if(a==='start'||a==='next'){await i.deferUpdate();if(a==='start')service.start(t,i.user.id);else service.next(t,i.user.id);await render(t);await privateHands.deal(t);await postAction(t);return;}
+  if(a==='start'||a==='next'){await i.deferUpdate();if(a==='start')service.start(t,i.user.id);else service.next(t,i.user.id);await postAction(t);return;}
   if(a==='cancel')return i.reply({...E,content:'대기 테이블을 취소하고 참가비를 모두 반환할까요?',components:confirm('cancel',t)});
   if(a==='cancelno'||a==='quitno')return i.update({content:'취소했습니다. 게임을 계속합니다.',components:[]});
   if(a==='cancelyes'){await i.deferUpdate();await service.cancel(t,i.user.id);await i.editReply({content:'참가비 반환을 완료했습니다.',components:[]});return render(t);}
@@ -164,6 +162,5 @@ async function handle(i){
  async function refreshClocks(now=Date.now()){
   for(const t of service.tables.values())if(t.status==='playing'&&!t.hand.done&&now-(clockRenders.get(t.id)||0)>=10000)await render(t);
  }
- async function restoreHands(t){if(t.status==='playing'&&t.hand&&!t.hand.done){await privateHands.deal(t);await privateHands.notifyTurn(t);}}
- return {handle,render,postAction,runTimeouts,refreshClocks,restoreHands};
+ return {handle,render,postAction,runTimeouts,refreshClocks};
 }
