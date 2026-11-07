@@ -1,3 +1,13 @@
+# 2.2.1 — Fix duplicate navigation component IDs
+
+- History previous/next buttons have unique IDs even when there is only one saved hand.
+- Replay first/previous/next/result buttons remain unique when they target the same boundary step.
+- Keep existing replay/history routes compatible by adding an action suffix.
+- Validate Discord message-wide ID uniqueness in integration mocks, including disabled buttons.
+- Check history lists of 1–10 hands and replay timelines of 1–30 steps.
+- Include the actual package version in Ready and health output so a stale host deployment is visible.
+- 72 automated tests pass.
+
 # 2.2.0 — English economy commands and tutorials
 
 - Replace the balance slash subcommand with !bal; add !balance/!money aliases.

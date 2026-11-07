@@ -6,10 +6,14 @@ import {Economy} from '../src/economy.js';
 import {Service} from '../src/service.js';
 import {createDiscordRuntime,amount} from '../src/discord-runtime.js';
 import {bettingInfo,cardText} from '../src/table-view.js';
+function validateComponents(payload){
+ const ids=(payload?.components||[]).flatMap(row=>(row.toJSON?row.toJSON():row).components).map(c=>c.custom_id).filter(Boolean);
+ assert.equal(new Set(ids).size,ids.length,'Discord requires unique custom_id values, including disabled buttons');
+}
 async function setup(){
  const store=new Store(':memory:'),economy=new Economy(store),service=new Service(store,economy),messages=[];
- const message={id:'m',edit:async payload=>{messages.push(payload);}};
- const channel={guildId:'g',guild:{members:{me:{id:'bot'}}},permissionsFor:()=>new PermissionsBitField(Object.values(PermissionFlagsBits)),isTextBased:()=>true,messages:{fetch:async()=>message},send:async payload=>{messages.push(payload);return message;}};
+ const message={id:'m',edit:async payload=>{validateComponents(payload);messages.push(payload);}};
+ const channel={guildId:'g',guild:{members:{me:{id:'bot'}}},permissionsFor:()=>new PermissionsBitField(Object.values(PermissionFlagsBits)),isTextBased:()=>true,messages:{fetch:async()=>message},send:async payload=>{validateComponents(payload);messages.push(payload);return message;}};
  const client={channels:{fetch:async()=>channel}};
  const config={mode:'test',guildId:'g',turnSeconds:90};
  const runtime=createDiscordRuntime({client,store,economy,service,config,renderTableImage:async()=>Buffer.from('image-fixture'),renderHandImage:async()=>Buffer.from('private-fixture'),renderBoardImage:async()=>Buffer.from('board-fixture')});
@@ -23,8 +27,8 @@ function interaction({user='a',button,command,sub,modal,value,guild='g',number}=
  return {calls,guildId:guild,channelId:'c',user:{id:user},member:{displayName:user},inGuild:()=>true,
   customId:button||modal,isButton:()=>Boolean(button),isChatInputCommand:()=>Boolean(command),isModalSubmit:()=>Boolean(modal),commandName:command,
   options:{getSubcommand:()=>sub,getInteger:()=>number??null},fields:{getTextInputValue:()=>value},
-  reply:async payload=>calls.push(['reply',payload]),deferReply:async payload=>calls.push(['deferReply',payload]),editReply:async payload=>calls.push(['editReply',payload]),
-  deferUpdate:async()=>calls.push(['deferUpdate']),update:async payload=>calls.push(['update',payload]),showModal:async payload=>calls.push(['modal',payload.toJSON()])};
+  reply:async payload=>(validateComponents(payload),calls.push(['reply',payload])),deferReply:async payload=>calls.push(['deferReply',payload]),editReply:async payload=>(validateComponents(payload),calls.push(['editReply',payload])),
+  deferUpdate:async()=>calls.push(['deferUpdate']),update:async payload=>(validateComponents(payload),calls.push(['update',payload])),showModal:async payload=>calls.push(['modal',payload.toJSON()])};
 }
 test('actual Discord handler keeps cards private and gives only the acting player betting controls',async()=>{
  const {store,runtime,t}=await setup();const user=t.hand.turn;
@@ -137,6 +141,15 @@ test('flop/turn/river edits attach public-card images and use new filenames to a
   assert.equal(payload.embeds[1].toJSON().image.url,`attachment://${board.name}`);
   const oldName=board.name;await runtime.render(t);assert.notEqual(messages.at(-1).files[1].name,oldName);
   assert.deepEqual(messages.at(-1).attachments,[]);
+ }
+ store.close();
+});
+
+test('tagged previous/next replay and history IDs route correctly at navigation boundaries',async()=>{
+ const {store,service,runtime,t}=await setup();
+ while(!t.hand.done)service.action(t,t.hand.turn,t.hand.seats[t.hand.turn].bet<t.hand.currentBet?'call':'check',null,t.hand.rev);
+ for(const customId of ['history:t:1:prev','history:t:1:next','replay:t:1:0:first','replay:t:1:0:prev']){
+  const i=interaction({user:'a',button:customId});await runtime.handle(i);assert(i.calls.length);validateComponents(i.calls.at(-1)[1]);
  }
  store.close();
 });

@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import {Client,GatewayIntentBits,Events,MessageFlags,Routes} from 'discord.js';
 import {createServer} from 'node:http';
+import {readFileSync} from 'node:fs';
+const version=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8')).version;
 import {commands} from './commands.js';
 import {Store} from './store.js';
 import {Economy} from './economy.js';
@@ -36,7 +38,7 @@ client.on(Events.InteractionCreate,i=>{
  }
 });});
 client.once(Events.ClientReady,async()=>{
- console.log(`Ready: ${client.user.tag} (${mode})`);
+ console.log(`Ready: ${client.user.tag} · RSF Poker ${version} (${mode})`);
  const schema='prefix-economy-v1';
  if(store.db.prepare("SELECT value FROM metadata WHERE key='command_schema'").get()?.value!==schema){
   await serial(async()=>{try{
@@ -56,7 +58,7 @@ const timer=setInterval(()=>{
 const server=createServer((_req,res)=>{
  const ready=!closing&&client.isReady();
  res.writeHead(ready?200:503,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'});
- res.end(ready?'RSF Poker ready':'RSF Poker connecting');
+ res.end(`RSF Poker ${version} ${ready?'ready':'connecting'}`);
 }).listen(config.port,'0.0.0.0');
 client.on(Events.Error,()=>console.error('Discord 연결 오류. 네트워크와 봇 상태를 확인해주세요.'));
 async function shutdown(code=0){

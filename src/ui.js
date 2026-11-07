@@ -52,10 +52,10 @@ export function embed(t,mode,turnSeconds=90){
 export function historyRows(t,selected){
  const list=availableHistory(t),at=list.findIndex(h=>h.handNo===selected);
  if(at<0)return [];
- return rows([btn(`replay:${t.id}:${selected}:0`,'판 다시보기',ButtonStyle.Primary,!publicRecord(t,selected)?.frames?.length),btn(`history:${t.id}:${list[at-1]?.handNo||selected}`,'← 이전 판',ButtonStyle.Secondary,at===0),btn(`history:${t.id}:${list[at+1]?.handNo||selected}`,'다음 판 →',ButtonStyle.Secondary,at===list.length-1),btn(`export:${t.id}`,'최근 10판 기록 파일')]);
+ return rows([btn(`replay:${t.id}:${selected}:0`,'판 다시보기',ButtonStyle.Primary,!publicRecord(t,selected)?.frames?.length),btn(`history:${t.id}:${list[at-1]?.handNo||selected}:prev`,'← 이전 판',ButtonStyle.Secondary,at===0),btn(`history:${t.id}:${list[at+1]?.handNo||selected}:next`,'다음 판 →',ButtonStyle.Secondary,at===list.length-1),btn(`export:${t.id}`,'최근 10판 기록 파일')]);
 }
 
 export function replayRows(t,handNo,step,count){
- const button=(n,label,disabled)=>btn(`replay:${t.id}:${handNo}:${n}`,label,ButtonStyle.Secondary,disabled);
- return rows([button(0,'처음',step===0),button(Math.max(0,step-1),'← 이전 행동',step===0),button(Math.min(count-1,step+1),'다음 행동 →',step===count-1),button(count-1,'결과',step===count-1),btn(`history:${t.id}:${handNo}`,'기록으로')]);
+ const button=(n,label,disabled,key)=>btn(`replay:${t.id}:${handNo}:${n}:${key}`,label,ButtonStyle.Secondary,disabled);
+ return rows([button(0,'처음',step===0,'first'),button(Math.max(0,step-1),'← 이전 행동',step===0,'prev'),button(Math.min(count-1,step+1),'다음 행동 →',step===count-1,'next'),button(count-1,'결과',step===count-1,'last'),btn(`history:${t.id}:${handNo}`,'기록으로')]);
 }
