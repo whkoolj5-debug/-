@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './load-env.js';
 import {Client,Events,GatewayIntentBits,REST,Routes,PermissionFlagsBits} from 'discord.js';
 import {readConfig} from './config.js';
 let client;

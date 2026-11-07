@@ -1,3 +1,11 @@
+# 2.2.4 — Remove dotenv startup dependency
+
+- Replace dotenv/config imports in bot startup, config check and command registration with Node's built-in loadEnvFile.
+- Remove dotenv from package.json and package-lock.json; verify clean npm ci succeeds with dotenv absent.
+- Preserve host-provided environment values, support quoted .env values/comments, and allow a missing .env when the host injects configuration.
+- Surface unexpected file errors without printing configuration contents.
+- 84 automated tests pass.
+
 # 2.2.3 — Plain prefix commands and bilingual help
 
 - Enable the supported Message Content limited application flag through Discord's documented /applications/@me API on startup, before gateway login.

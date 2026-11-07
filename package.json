@@ -1,6 +1,6 @@
 {
   "name": "rsf-discord-holdem-bot",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "private": true,
   "type": "module",
   "engines": {
@@ -18,7 +18,6 @@
   },
   "dependencies": {
     "discord.js": "^14.22.1",
-    "dotenv": "^16.6.1",
     "sharp": "^0.35.5"
   }
 }

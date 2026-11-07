@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './load-env.js';
 import {Client,GatewayIntentBits,Events,MessageFlags,Routes} from 'discord.js';
 import {createServer} from 'node:http';
 import {readFileSync} from 'node:fs';

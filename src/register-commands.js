@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './load-env.js';
 import {REST,Routes} from 'discord.js';
 import {commands} from './commands.js';
 import {readConfig} from './config.js';
