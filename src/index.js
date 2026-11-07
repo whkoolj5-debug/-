@@ -17,7 +17,7 @@ const {mode}=config;
 const store=new Store(config.databasePath);
 const economy=new Economy(store,{mode,token:config.economyToken});
 const service=new Service(store,economy);service.recover();
-const client=new Client({intents:[GatewayIntentBits.Guilds]});
+const client=new Client({intents:[GatewayIntentBits.Guilds,GatewayIntentBits.GuildMessages]});
 const {handle,render,runTimeouts}=createDiscordRuntime({client,store,economy,service,config});
 const prefix=createPrefixCommands({store,economy,config,botId:()=>client.user?.id});
 const E={flags:MessageFlags.Ephemeral};

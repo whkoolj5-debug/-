@@ -1,3 +1,12 @@
+# 2.2.2 — Fix message event subscriptions
+
+- discord.js freezes Client.options.intents. BitField.add() returns a new object for a frozen field; the old code ignored that return value.
+- Subscribe to GuildMessages when constructing the client and reassign the updated frozen bitfield before gateway login.
+- Reassign MessageContent only when the application has enabled it. Bot mentions still work without that privileged intent.
+- Log the effective GuildMessages/MessageContent subscription values.
+- Reproduce the bug and verify the fix with real discord.js Client objects instead of only mutable test doubles.
+- 74 automated tests pass.
+
 # 2.2.1 — Fix duplicate navigation component IDs
 
 - History previous/next buttons have unique IDs even when there is only one saved hand.

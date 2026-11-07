@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {ApplicationFlagsBitField,GatewayIntentBits,IntentsBitField,PermissionFlagsBits,PermissionsBitField} from 'discord.js';
+import {Client,ApplicationFlagsBitField,GatewayIntentBits,IntentsBitField,PermissionFlagsBits,PermissionsBitField} from 'discord.js';
 import {Store} from '../src/store.js';
 import {Economy} from '../src/economy.js';
 import {createPrefixCommands,parsePrefix,moneyHelp} from '../src/prefix-commands.js';
@@ -76,4 +76,26 @@ test('English slash labels keep the original handler names and remove the old ba
  assert(!poker.options.some(o=>o.name==='잔액'));
  assert.equal(poker.options.find(o=>o.name==='카드').name_localizations['en-US'],'hand');
  assert.equal(poker.options.find(o=>o.name==='테이블').options[0].name_localizations['en-US'],'create');
+});
+
+test('real discord.js Client frozen intent fields are reassigned so message events are actually subscribed',async()=>{
+ for(const enabled of [false,true]){
+  const client=new Client({intents:[GatewayIntentBits.Guilds]});
+  try{
+   assert(Object.isFrozen(client.options.intents));assert(!client.options.intents.has(GatewayIntentBits.GuildMessages));
+   client.rest.get=async()=>({flags:enabled?ApplicationFlagsBitField.Flags.GatewayMessageContentLimited:0});
+   const result=await enablePrefixIntents(client,()=>{});
+   assert.equal(result,enabled);assert(client.options.intents.has(GatewayIntentBits.GuildMessages));
+   assert.equal(client.options.intents.has(GatewayIntentBits.MessageContent),enabled);
+   assert(Object.isFrozen(client.options.intents));
+  }finally{client.destroy();}
+ }
+});
+test('real Client still subscribes to guild messages when application permission lookup fails',async()=>{
+ const client=new Client({intents:[GatewayIntentBits.Guilds]});
+ try{
+  client.rest.get=async()=>{throw Error('API unavailable');};
+  assert.equal(await enablePrefixIntents(client,()=>{}),false);
+  assert(client.options.intents.has(GatewayIntentBits.GuildMessages));assert(!client.options.intents.has(GatewayIntentBits.MessageContent));
+ }finally{client.destroy();}
 });
