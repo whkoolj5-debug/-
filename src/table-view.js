@@ -1,3 +1,4 @@
+export const MIN_PLAYERS=2;
 import {act} from './game.js';
 import {evaluateHand,rankLabel,suitLabel} from './poker-engine.js';
 export const themes={

@@ -1,5 +1,5 @@
 import {availableHistory} from './interactions.js';
-import {bettingInfo,canAct,showdown,streetName,actionName,cardText,tableTheme,publicRecord} from './table-view.js';
+import {bettingInfo,canAct,showdown,streetName,actionName,cardText,tableTheme,publicRecord,MIN_PLAYERS} from './table-view.js';
 import {ActionRowBuilder,ButtonBuilder,ButtonStyle,EmbedBuilder} from 'discord.js';
 export const money=n=>Number(n).toLocaleString('ko-KR');
 export const btn=(id,label,style=ButtonStyle.Secondary,disabled=false)=>new ButtonBuilder().setCustomId(id).setLabel(label.slice(0,80)).setStyle(style).setDisabled(disabled);
@@ -22,7 +22,7 @@ export function publicRows(t){
 }
 export function hostRows(t){
  const theme=btn(`theme:${t.id}`,`테마 · ${tableTheme(t).name}`),refresh=btn(`refresh:${t.id}`,'테이블 다시 표시');
- if(t.status==='lobby')return rows([btn(`biginput:${t.id}`,'블라인드 설정',ButtonStyle.Primary),...(t.seats.filter(Boolean).length>=5?[btn(`start:${t.id}`,'START',ButtonStyle.Success,!t.blindsConfirmed)]:[]),btn(`cancel:${t.id}`,'대기 테이블 취소',ButtonStyle.Danger),theme,refresh]);
+ if(t.status==='lobby')return rows([btn(`biginput:${t.id}`,'블라인드 설정',ButtonStyle.Primary),...(t.seats.filter(Boolean).length>=MIN_PLAYERS?[btn(`start:${t.id}`,'START',ButtonStyle.Success,!t.blindsConfirmed)]:[]),btn(`cancel:${t.id}`,'대기 테이블 취소',ButtonStyle.Danger),theme,refresh]);
  if(t.status==='playing')return rows([...(t.hand?.done?[btn(`next:${t.id}`,'다음 판 시작',ButtonStyle.Success)]:[]),theme,refresh]);
  if(['refunding','settling'].includes(t.status))return rows([btn(`retry:${t.id}`,'정산 이어서 처리',ButtonStyle.Primary),refresh]);
  return [];
@@ -45,7 +45,7 @@ export function embed(t,mode,turnSeconds=90){
  }
  text+='\n'+t.seats.map((id,i)=>`${i+1}번 · ${id?`<@${id}> · ${money(h?.seats[id]?.chips??t.startingMoney)} 칩${t.players[id].quit?' · 영구 포기':h?.folded.includes(id)?' · 폴드':''}`:'빈자리'}`).join('\n');
  if(h?.log?.length)text+='\n\n**최근 행동**\n'+h.log.slice(-3).map(a=>`<@${a.id}> ${actionName(a.kind)}${a.automatic?' (시간 초과)':''}${a.amount?` +${money(a.amount)}`:''}`).join('\n');
- if(t.status==='lobby')text+='\n\n5명 이상 참가 + 블라인드 확정 → 방장이 /포커 관리에서 START';
+ if(t.status==='lobby')text+='\n\n2명 이상 참가 + 블라인드 확정 → 방장이 /포커 관리에서 START';
  return new EmbedBuilder().setColor(h?.done?0xd7ad63:Number.parseInt(tableTheme(t).ink.slice(1),16)).setTitle(`RSF POKER · ${t.ownerName}님의 테이블`).setDescription(text.slice(0,4000)).setImage('attachment://table.png').setFooter({text:'내 카드는 본인만 확인 · 빠른 베팅 금액은 이번 라운드의 총액 · /포커 관리'});
 }
 

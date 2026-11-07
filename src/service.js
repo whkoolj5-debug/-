@@ -1,5 +1,5 @@
 import {newHand,act} from './game.js';
-import {rememberHand,publicFrame} from './table-view.js';
+import {rememberHand,publicFrame,MIN_PLAYERS} from './table-view.js';
 export class Service{
  constructor(store,economy){this.store=store;this.economy=economy;this.tables=new Map(store.load().map(t=>[t.id,t]));}
  save(t){this.store.save(t);return t;}
@@ -24,7 +24,7 @@ export class Service{
   t.seats[seat]=u;t.players[u]={name,quit:false};delete t.intent;this.save(t);
  }
  blinds(t,u,big,small){this.owner(t,u);if(t.status!=='lobby')throw Error('게임 시작 전만 설정할 수 있습니다.');if(!(small>0&&small<=big&&big<=t.startingMoney))throw Error('스몰 ≤ 빅 ≤ 시작머니로 입력해주세요.');t.bigBlind=big;t.smallBlind=small;t.blindsConfirmed=true;this.save(t);}
- start(t,u){this.owner(t,u);if(t.status!=='lobby'||t.seats.filter(Boolean).length<5||!t.blindsConfirmed)throw Error('최소 5명과 블라인드 확정이 필요합니다.');t.status='playing';this.next(t,u);}
+ start(t,u){this.owner(t,u);if(t.status!=='lobby'||t.seats.filter(Boolean).length<MIN_PLAYERS||!t.blindsConfirmed)throw Error('최소 2명과 블라인드 확정이 필요합니다.');t.status='playing';this.next(t,u);}
  next(t,u){this.owner(t,u);if(t.status!=='playing'||t.hand&&!t.hand.done)throw Error('현재 판이 끝난 뒤 진행하세요.');
   const ids=t.seats.filter(id=>id&&!t.players[id].quit&&(!t.hand||t.hand.seats[id]?.chips>0));
   if(ids.length<2)throw Error('진행 가능한 인원이 부족합니다.');

@@ -121,3 +121,19 @@ export async function renderTable(t){
  svg+=`<rect x="40" y="728" width="1120" height="34" rx="10" fill="#101e29"/>${text(600,750,Array.from(footer).slice(0,68).join(''),13,h?.done?'#f1d599':'#93b1b5',center)}</svg>`;
  return sharp(Buffer.from(svg)).composite(cardLayers).png().toBuffer();
 }
+
+// This image accepts only already-public board cards; future cards and hole cards are never inputs.
+export async function boardImage(cards,street){
+ ensureFontCache();
+ const labels=['플롭 1','플롭 2','플롭 3','턴','리버'];
+ const title=`공용 카드 · ${streetName(street)} · ${cards.length}/5장 공개`;
+ let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="840" height="300"><rect width="840" height="300" rx="16" fill="#10242d"/><text x="28" y="34" fill="#eee4bf" font-family="Noto Sans KR, sans-serif" font-size="19" font-weight="bold">${esc(title)}</text>`;
+ const layers=[];
+ for(let i=0;i<5;i++){
+  const left=28+i*158,top=58;
+  if(cards[i])layers.push({input:await sharp(`assets/cards/${cards[i].id}.png`).resize(144,202).toBuffer(),left,top});
+  else svg+=`<rect x="${left}" y="${top}" width="144" height="202" rx="10" fill="#173c40" stroke="#507e7a" stroke-dasharray="6 5"/><text x="${left+72}" y="${top+108}" fill="#7caaa5" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-size="16">미공개</text>`;
+  svg+=`<text x="${left+72}" y="284" fill="#b9d2cc" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-size="13">${labels[i]}</text>`;
+ }
+ return sharp(Buffer.from(svg+'</svg>')).composite(layers).png().toBuffer();
+}

@@ -1,15 +1,15 @@
-import {MessageFlags,ModalBuilder,TextInputBuilder,TextInputStyle,ActionRowBuilder,AttachmentBuilder,ButtonStyle,PermissionFlagsBits} from 'discord.js';
+import {MessageFlags,ModalBuilder,TextInputBuilder,TextInputStyle,ActionRowBuilder,AttachmentBuilder,ButtonStyle,PermissionFlagsBits,EmbedBuilder} from 'discord.js';
 import {randomUUID} from 'node:crypto';
-import {renderTable,handImage} from './art.js';
+import {renderTable,handImage,boardImage} from './art.js';
 import {money,btn,rows,confirm,publicRows,hostRows,embed,historyRows,replayRows} from './ui.js';
-import {bettingInfo,handSummary,themes,replayState} from './table-view.js';
+import {bettingInfo,handSummary,themes,replayState,streetName,cardText} from './table-view.js';
 import {quickBet,historyPage} from './interactions.js';
 import {accessError,tableChannel} from './channel-access.js';
 import {evaluateHand} from './poker-engine.js';
 
 export function amount(s){if(!/^(?:[1-9]\d*|[1-9]\d{0,2}(?:,\d{3})+)$/.test(s.trim()))throw Error('정확한 정수를 입력해주세요. 예: 500,000');const n=Number(s.replaceAll(',',''));if(!Number.isSafeInteger(n)||n<1||n>100000000)throw Error('금액은 1~100,000,000 범위입니다.');return n;}
 
-export function createDiscordRuntime({client,store,economy,service,config,renderTableImage=renderTable,renderHandImage=handImage}){
+export function createDiscordRuntime({client,store,economy,service,config,renderTableImage=renderTable,renderHandImage=handImage,renderBoardImage=boardImage}){
  const {mode}=config;
  const E={flags:MessageFlags.Ephemeral};
  const panels=new Map(),drafts=new Map();
@@ -18,7 +18,14 @@ const find=i=>service.forUser(i.guildId,i.user.id);
 function table(id,i){const t=service.tables.get(id);if(t?.guildId!==i.guildId)throw Error('이 서버의 테이블이 아닙니다.');return t;}
 async function render(t){
  const channel=await tableChannel(client,t.channelId,t.guildId);
- const payload={content:`<@${t.ownerId}>님의 테이블 · 스타트머니 ${money(t.startingMoney)}`,embeds:[embed(t,mode,config.turnSeconds)],files:[new AttachmentBuilder(await renderTableImage({...t,displayMode:mode}),{name:'table.png'})],components:publicRows(t),allowedMentions:{parse:[]}};
+ const stamp=`${t.id}-${t.handNo||0}-${t.hand?.rev||0}-${randomUUID().slice(0,8)}`;
+ const tableName=`table-${stamp}.png`;
+ const payload={content:`<@${t.ownerId}>님의 테이블 · 스타트머니 ${money(t.startingMoney)}`,embeds:[embed(t,mode,config.turnSeconds).setImage(`attachment://${tableName}`)],files:[new AttachmentBuilder(await renderTableImage({...t,displayMode:mode}),{name:tableName})],components:publicRows(t),allowedMentions:{parse:[]}};
+ if(t.hand?.board.length){
+  const boardName=`board-${stamp}.png`;
+  payload.files.push(new AttachmentBuilder(await renderBoardImage(t.hand.board,t.hand.street),{name:boardName}));
+  payload.embeds.push(new EmbedBuilder().setColor(0x2fbaa0).setTitle(`공용 카드 · ${streetName(t.hand.street)}`).setDescription(cardText(t.hand.board)).setImage(`attachment://${boardName}`));
+ }
  if(t.messageId){try{const m=await channel.messages.fetch(t.messageId);await m.edit({...payload,attachments:[]});}catch(e){if(e.code!==10008)throw accessError(e);t.messageId=null;}}
  if(!t.messageId){let m;try{m=await channel.send({...payload,allowedMentions:{users:[t.ownerId]}});}catch(error){throw accessError(error);}t.messageId=m.id;service.save(t);}
  const p=panels.get(t.id);if(p)await p.editReply({content:`방장 전용 · 참가 ${t.seats.filter(Boolean).length}/7 · ${t.status}`,components:hostRows(t)}).catch(()=>panels.delete(t.id));
@@ -47,7 +54,7 @@ async function handle(i){
    if(sub==='만들기'&&find(i)?.ownerId===i.user.id)return panel(i,find(i));
    if(sub==='만들기')return i.reply({...E,content:'게임 스타팅머니를 정해주세요.',components:rows([btn('createinput','시작머니 입력',ButtonStyle.Primary)])});
    if(sub==='관리')return panel(i,find(i));
-   if(sub==='도움말')return i.reply({...E,content:'① /포커 테이블 만들기 → 시작머니 입력\n② /빅 스몰 설정 → 방장만 설정\n③ 5명 이상 참가 → 방장이 /포커 관리 → START\n④ 내 카드 보기 → 내 차례에 체크/콜/레이즈\n⑤ 판 종료 → 방장이 다음 판 시작\n\n콜은 표시된 금액만 추가합니다. 레이즈와 빠른 베팅의 숫자는 이번 라운드 총액입니다. 팟 버튼은 콜 후 팟 크기만큼 레이즈합니다. ㅈㅈ는 일반 폴드와 달리 남은 칩 전액을 기부하고 영구 포기합니다.\n/포커 기록으로 이전 판 결과와 순증감을 확인할 수 있습니다.'});
+   if(sub==='도움말')return i.reply({...E,content:'① /포커 테이블 만들기 → 시작머니 입력\n② /빅 스몰 설정 → 방장만 설정\n③ 2명 이상 참가 → 방장이 /포커 관리 → START\n④ 내 카드 보기 → 내 차례에 체크/콜/레이즈\n⑤ 판 종료 → 방장이 다음 판 시작\n\n콜은 표시된 금액만 추가합니다. 레이즈와 빠른 베팅의 숫자는 이번 라운드 총액입니다. 팟 버튼은 콜 후 팟 크기만큼 레이즈합니다. ㅈㅈ는 일반 폴드와 달리 남은 칩 전액을 기부하고 영구 포기합니다.\n/포커 기록으로 이전 판 결과와 순증감을 확인할 수 있습니다.'});
    if(sub==='기록'){const t=find(i)||[...service.tables.values()].filter(t=>t.guildId===i.guildId&&t.seats.includes(i.user.id)).at(-1);if(!t)throw Error('참가했던 테이블이 없습니다.');return history(i,t,i.options.getInteger('판')??undefined);}
    if(sub==='카드')return cards(i,find(i));
    if(sub==='카드목록')return i.reply({...E,files:[new AttachmentBuilder('assets/deck-preview.png',{name:'52-cards.png'})]});

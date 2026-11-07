@@ -8,7 +8,7 @@ test('buy-in idempotency, insufficient balance, seat collision, cancel refunds',
  await assert.rejects(()=>v.join(t,'b','B',0));assert.equal((await e.balance('g','b')).balance,5000000);
  await v.join(t,'b','B',1);await v.cancel(t,'a');assert.equal((await e.balance('g','a')).balance,5000000);assert.equal((await e.balance('g','b')).balance,5000000);s.close();
 });
-test('5 seats required, private owner control, blind validation and complete settlement',async()=>{
+test('two seats minimum, private owner control, blind validation and complete settlement',async()=>{
  const {s,e,v}=setup();const t=await v.create('t','g','c','a','A',1000);v.blinds(t,'a',20,10);
  assert.throws(()=>v.start(t,'a'));assert.throws(()=>v.blinds(t,'b',20,10));
  for(const [n,id] of ['b','c','d','e'].entries())await v.join(t,id,id,n+1);
@@ -36,4 +36,16 @@ test('multiple hands rotate dealer, retain chips and settle only at tournament e
  await v.finish(t);assert.equal(t.status,'playing');const old=t.hand;const chips=Object.values(old.seats).reduce((n,p)=>n+p.chips,0);
  v.next(t,'a');assert.equal(t.hand.ids[t.hand.dealerIndex],'b');assert.equal(Object.values(t.hand.seats).reduce((n,p)=>n+p.chips,0)+t.hand.pot,chips);assert.equal(t.handNo,2);
  const recovered=new Service(s,e);assert.equal(recovered.tables.get('t').hand.turn,t.hand.turn);assert.deepEqual(recovered.tables.get('t').hand.deck,t.hand.deck);s.close();
+});
+
+test('exactly two seated players can start; heads-up dealer posts SB and acts first before flop',async()=>{
+ const {s,e,v}=setup();const t=await v.create('duel','g','c','a','A',1000);
+ v.blinds(t,'a',20,10);assert.throws(()=>v.start(t,'a'));
+ await v.join(t,'b','B',1);assert.throws(()=>v.start(t,'b'),/방장/);v.start(t,'a');
+ assert.equal(t.hand.ids.length,2);assert.equal(t.hand.ids[t.hand.sbIndex],'a');assert.equal(t.hand.ids[t.hand.bbIndex],'b');assert.equal(t.hand.turn,'a');
+ v.action(t,'a','call',null,t.hand.rev);assert.equal(t.hand.turn,'b');v.action(t,'b','check',null,t.hand.rev);
+ assert.equal(t.hand.street,'flop');assert.equal(t.hand.board.length,3);assert.equal(t.hand.turn,'b');
+ while(!t.hand.done)v.action(t,t.hand.turn,t.hand.seats[t.hand.turn].bet<t.hand.currentBet?'call':'check',null,t.hand.rev);
+ await v.finish(t);assert.equal(t.status,'playing');v.next(t,'a');assert.equal(t.hand.ids[t.hand.dealerIndex],'b');
+ assert.equal(Object.values(t.hand.seats).reduce((n,p)=>n+p.chips,0)+t.hand.pot,2000);s.close();
 });

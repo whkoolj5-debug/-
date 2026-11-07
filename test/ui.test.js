@@ -1,10 +1,10 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
 import sharp from 'sharp';
 import {publicRows,hostRows} from '../src/ui.js';import {commands} from '../src/commands.js';import {Store} from '../src/store.js';import {Economy} from '../src/economy.js';import {makeDeck} from '../src/poker-engine.js';
-test('seat layouts fit five-button limit; START stays private and requires five',()=>{
- const t={id:'t',ownerName:'A',seats:['1','2','3','4',null,null,null],status:'lobby',blindsConfirmed:true};
+test('seat layouts fit five-button limit; START stays private and requires two',()=>{
+ const t={id:'t',ownerName:'A',seats:['1',null,null,null,null,null,null],status:'lobby',blindsConfirmed:true};
  assert(!hostRows(t).flatMap(r=>r.components).some(b=>b.data.label==='START'));
- t.seats[4]='5';assert(hostRows(t).flatMap(r=>r.components).some(b=>b.data.label==='START'));
+ t.seats[1]='2';assert(hostRows(t).flatMap(r=>r.components).some(b=>b.data.label==='START'));
  assert(!publicRows(t).flatMap(r=>r.components).some(b=>b.data.label==='START'));
  for(const r of [...publicRows(t),...hostRows(t)])assert(r.toJSON().components.length<=5);
  assert(commands.find(c=>c.name==='포커').options.find(c=>c.name==='테이블').options.find(c=>c.name==='만들기'));

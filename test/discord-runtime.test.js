@@ -12,7 +12,7 @@ async function setup(){
  const channel={guildId:'g',guild:{members:{me:{id:'bot'}}},permissionsFor:()=>new PermissionsBitField(Object.values(PermissionFlagsBits)),isTextBased:()=>true,messages:{fetch:async()=>message},send:async payload=>{messages.push(payload);return message;}};
  const client={channels:{fetch:async()=>channel}};
  const config={mode:'test',guildId:'g',turnSeconds:90};
- const runtime=createDiscordRuntime({client,store,economy,service,config,renderTableImage:async()=>Buffer.from('image-fixture'),renderHandImage:async()=>Buffer.from('private-fixture')});
+ const runtime=createDiscordRuntime({client,store,economy,service,config,renderTableImage:async()=>Buffer.from('image-fixture'),renderHandImage:async()=>Buffer.from('private-fixture'),renderBoardImage:async()=>Buffer.from('board-fixture')});
  const t=await service.create('t','g','c','a','A',1000);
  for(const [n,id] of ['b','c','d','e'].entries())await service.join(t,id,id,n+1);
  service.blinds(t,'a',20,10);service.start(t,'a');
@@ -124,4 +124,19 @@ test('public send failure preserves a recoverable table and a repeated create ne
  channel.send=send;
  await runtime.handle(interaction({user:'new',modal:'create',value:'2000'}));
  assert.equal(service.forUser('g','new').id,existing.id);assert.equal((await economy.balance('g','new')).balance,balance);assert.equal(existing.startingMoney,1000);assert(existing.messageId);store.close();
+});
+
+test('flop/turn/river edits attach public-card images and use new filenames to avoid stale previews',async()=>{
+ const {store,service,runtime,t,messages}=await setup();
+ await runtime.render(t);assert.equal(messages.at(-1).files.length,1);
+ for(const [street,count] of [['flop',3],['turn',4],['river',5]]){
+  while(!t.hand.done&&t.hand.street!==street)service.action(t,t.hand.turn,t.hand.seats[t.hand.turn].bet<t.hand.currentBet?'call':'check',null,t.hand.rev);
+  assert.equal(t.hand.board.length,count);await runtime.render(t);
+  const payload=messages.at(-1);assert.equal(payload.files.length,2);assert.equal(payload.embeds.length,2);
+  const board=payload.files.find(f=>f.name.startsWith('board-'));assert(board);
+  assert.equal(payload.embeds[1].toJSON().image.url,`attachment://${board.name}`);
+  const oldName=board.name;await runtime.render(t);assert.notEqual(messages.at(-1).files[1].name,oldName);
+  assert.deepEqual(messages.at(-1).attachments,[]);
+ }
+ store.close();
 });
