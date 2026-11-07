@@ -1,3 +1,17 @@
+# 2.2.0 — English economy commands and tutorials
+
+- Replace the balance slash subcommand with !bal; add !balance/!money aliases.
+- Add !pay/!give-money transfers and !lb/!leaderboard.
+- Administrator-only !add-money creates funds without charging the issuer, even with 0 balance.
+- Administrator-only !remove-money and !reset-money/!clear-money deduct a target wallet.
+- Revalidate current Administrator permissions before money mutations; do not trust a role name or cached membership.
+- English responses and !help/!tutorial; English slash-command name/description localization.
+- Detect Message Content permission before requesting the privileged intent. Mention-based fallback keeps the bot usable while disabled.
+- Synchronize the new slash-command schema once on ready; old balance interactions point to !bal.
+- Atomic local wallet transfers, persistent command intents, duplicate-event protection, paused uncertain LIVE API writes and administrator-assisted recovery.
+- TEST balances remain independent from UnbelievaBoat LIVE balances. No credentials or financial data are included.
+- 68 automated tests pass, including zero-balance issuance, unauthorized requests, partial API failure/restart, rollback and numeric bounds.
+
 # 2.1.2 — 공용 카드 이미지와 2인 시작
 
 - 2~7명 시작 가능. 2인전 딜러/블라인드/턴 순서를 검증했습니다.

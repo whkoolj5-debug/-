@@ -1,10 +1,13 @@
 import 'dotenv/config';
-import {Client,GatewayIntentBits,Events,MessageFlags} from 'discord.js';
+import {Client,GatewayIntentBits,Events,MessageFlags,Routes} from 'discord.js';
 import {createServer} from 'node:http';
+import {commands} from './commands.js';
 import {Store} from './store.js';
 import {Economy} from './economy.js';
 import {Service} from './service.js';
 import {readConfig} from './config.js';
+import {createPrefixCommands,parsePrefix} from './prefix-commands.js';
+import {enablePrefixIntents} from './prefix-intents.js';
 import {createDiscordRuntime} from './discord-runtime.js';
 export {amount} from './discord-runtime.js';
 const config=readConfig();
@@ -14,9 +17,15 @@ const economy=new Economy(store,{mode,token:config.economyToken});
 const service=new Service(store,economy);service.recover();
 const client=new Client({intents:[GatewayIntentBits.Guilds]});
 const {handle,render,runTimeouts}=createDiscordRuntime({client,store,economy,service,config});
+const prefix=createPrefixCommands({store,economy,config,botId:()=>client.user?.id});
 const E={flags:MessageFlags.Ephemeral};
 let chain=Promise.resolve(),busy=0,closing=false;
 const serial=fn=>{busy++;const task=chain.then(fn).finally(()=>busy--);chain=task.catch(e=>console.error('작업 처리 실패:',e.message));return task;};
+client.on(Events.MessageCreate,m=>{
+ if(closing||!parsePrefix(m.content,client.user?.id)||m.author?.bot||m.webhookId||m.guildId!==config.guildId)return;
+ if(busy)return m.reply({content:'처리 중입니다. 잠시 후 다시 입력해주세요.',allowedMentions:{parse:[],repliedUser:false}}).catch(()=>{});
+ serial(()=>prefix.handle(m)).catch(e=>console.error('메시지 명령어 처리:',e.message));
+});
 client.on(Events.InteractionCreate,i=>{
  if(closing||busy)return i.reply({...E,content:'다른 동작을 처리 중입니다. 잠시 후 다시 눌러주세요.'}).catch(()=>{});
  return serial(async()=>{
@@ -28,6 +37,15 @@ client.on(Events.InteractionCreate,i=>{
 });});
 client.once(Events.ClientReady,async()=>{
  console.log(`Ready: ${client.user.tag} (${mode})`);
+ const schema='prefix-economy-v1';
+ if(store.db.prepare("SELECT value FROM metadata WHERE key='command_schema'").get()?.value!==schema){
+  await serial(async()=>{try{
+   await client.rest.put(Routes.applicationGuildCommands(config.clientId,config.guildId),{body:commands});
+   store.db.prepare("INSERT OR REPLACE INTO metadata VALUES('command_schema',?)").run(schema);
+   console.log('명령어 갱신 완료: 잔액 확인은 !bal');
+  }catch{console.error('슬래시 명령어 갱신 실패. 필요하면 npm run register를 실행하세요.');}});
+ }
+
  for(const t of service.tables.values())if(t.status!=='closed')await serial(async()=>{try{if(t.status==='settling')await service.finish(t);if(t.status==='refunding')await service.cancel(t,t.ownerId);await render(t);}catch(e){console.error('복구:',t.id,e.message);}});
 });
 // Offline recovery is rendered on ready; do not advance restored hands while disconnected.
@@ -53,7 +71,8 @@ server.on('error',error=>{
  shutdown(1);
 });
 for(const sig of ['SIGINT','SIGTERM'])process.on(sig,()=>shutdown());
-client.login(config.token).catch(()=>{
+client.rest.setToken(config.token);
+enablePrefixIntents(client).then(()=>client.login(config.token)).catch(()=>{
  console.error('Discord 로그인 실패. 로컬 .env 토큰과 네트워크를 확인해주세요.');
  shutdown(1);
 });

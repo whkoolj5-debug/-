@@ -54,11 +54,11 @@ async function handle(i){
    if(sub==='만들기'&&find(i)?.ownerId===i.user.id)return panel(i,find(i));
    if(sub==='만들기')return i.reply({...E,content:'게임 스타팅머니를 정해주세요.',components:rows([btn('createinput','시작머니 입력',ButtonStyle.Primary)])});
    if(sub==='관리')return panel(i,find(i));
-   if(sub==='도움말')return i.reply({...E,content:'① /포커 테이블 만들기 → 시작머니 입력\n② /빅 스몰 설정 → 방장만 설정\n③ 2명 이상 참가 → 방장이 /포커 관리 → START\n④ 내 카드 보기 → 내 차례에 체크/콜/레이즈\n⑤ 판 종료 → 방장이 다음 판 시작\n\n콜은 표시된 금액만 추가합니다. 레이즈와 빠른 베팅의 숫자는 이번 라운드 총액입니다. 팟 버튼은 콜 후 팟 크기만큼 레이즈합니다. ㅈㅈ는 일반 폴드와 달리 남은 칩 전액을 기부하고 영구 포기합니다.\n/포커 기록으로 이전 판 결과와 순증감을 확인할 수 있습니다.'});
+   if(sub==='도움말')return i.reply({...E,content:'잔액·송금·관리자 지급 안내는 !help를 입력하세요.\n① /포커 테이블 만들기 → 시작머니 입력\n② /빅 스몰 설정 → 방장만 설정\n③ 2명 이상 참가 → 방장이 /포커 관리 → START\n④ 내 카드 보기 → 내 차례에 체크/콜/레이즈\n⑤ 판 종료 → 방장이 다음 판 시작\n\n콜은 표시된 금액만 추가합니다. 레이즈와 빠른 베팅의 숫자는 이번 라운드 총액입니다. 팟 버튼은 콜 후 팟 크기만큼 레이즈합니다. ㅈㅈ는 일반 폴드와 달리 남은 칩 전액을 기부하고 영구 포기합니다.\n/포커 기록으로 이전 판 결과와 순증감을 확인할 수 있습니다.'});
    if(sub==='기록'){const t=find(i)||[...service.tables.values()].filter(t=>t.guildId===i.guildId&&t.seats.includes(i.user.id)).at(-1);if(!t)throw Error('참가했던 테이블이 없습니다.');return history(i,t,i.options.getInteger('판')??undefined);}
    if(sub==='카드')return cards(i,find(i));
    if(sub==='카드목록')return i.reply({...E,files:[new AttachmentBuilder('assets/deck-preview.png',{name:'52-cards.png'})]});
-   if(sub==='잔액'){await i.deferReply(E);const b=await economy.balance(i.guildId,i.user.id);return i.editReply(`balance ${money(b.balance)}${mode==='test'?' (테스트 잔액)':''}`);}
+   if(sub==='잔액')return i.reply({...E,content:'잔액 확인은 이제 채팅에 !bal을 입력하세요. 전체 안내: !help'});
   }
   if(i.commandName==='빅'){const t=find(i);service.owner(t,i.user.id);if(t.status!=='lobby')throw Error('게임 시작 전만 설정할 수 있습니다.');return i.reply({...E,content:'빅블라인드 금액을 설정해주세요.',components:rows([btn(`biginput:${t.id}`,'금액 입력',ButtonStyle.Primary)])});}
   if(i.commandName==='ㅈㅈ')return surrender(i,find(i));

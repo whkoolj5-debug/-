@@ -8,6 +8,7 @@ export class Store{
    CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL);
    CREATE TABLE IF NOT EXISTS state(id TEXT PRIMARY KEY,json TEXT NOT NULL);
    CREATE TABLE IF NOT EXISTS transfers(id TEXT PRIMARY KEY,guild TEXT,user TEXT,amount INTEGER,status TEXT,detail TEXT);
+   CREATE TABLE IF NOT EXISTS money_commands(id TEXT PRIMARY KEY,json TEXT NOT NULL);
    CREATE TABLE IF NOT EXISTS balances(id TEXT PRIMARY KEY,amount INTEGER NOT NULL);`);
  }
  load(){return this.db.prepare('SELECT json FROM state').all().map(x=>JSON.parse(x.json));}

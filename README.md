@@ -1,7 +1,19 @@
-# RSF Poker Club · 디스코드 텍사스 홀덤 봇 2.1
+# RSF Poker Club · 디스코드 텍사스 홀덤 봇 2.2
 
 Node.js 24 이상. 2~7명이 시작하고, 탈락 후에는 2명까지 계속 진행합니다.
 서버 가상화폐 전용이며 현금 결제 기능은 없습니다.
+
+## 2.2.0 잔액·송금·관리자 지급
+
+- `!bal`, `!pay`, `!add-money`, `!remove-money`, `!reset-money`, `!lb`, `!help`
+- 새 돈 지급은 Administrator 권한이 필요하며 관리자 본인 잔액을 차감하지 않습니다.
+- 영어 메시지와 영어 튜토리얼: [COMMANDS.md](COMMANDS.md). 한국어 안내: [COMMANDS-KO.md](COMMANDS-KO.md).
+- 영어 Discord 클라이언트에는 `/poker` 등 영어 슬래시 이름이 표시됩니다.
+
+## 잔액·관리자 지급 명령어
+
+명령어 예제는 [튜토리얼](COMMANDS-KO.md)을 참고하세요. 관리자는 본인 잔액이 0이어도 !add-money으로 새 돈을 줄 수 있습니다.
+실제 UnbelievaBoat 잔액은 기존 live 모드와 API 키 설정이 필요하며, test 모드는 별도의 테스트 잔액입니다.
 
 ## 2.1.2 업데이트
 
@@ -43,12 +55,12 @@ Windows에서는 `SETUP-WINDOWS.cmd`를 더블클릭해 설치·설정·명령�
 
 macOS/Linux에서는 `cp .env.example .env`, Windows PowerShell에서는 `Copy-Item .env.example .env`로 설정 파일을 만듭니다.
 기존 `.env`가 있으면 복사로 덮어쓰지 말고 직접 편집하세요. Bot Token만 `DISCORD_TOKEN`에 입력하며, Client Secret/Public Key는 사용하지 않습니다.
-봇은 Guilds intent만 사용하므로 Message Content/Server Members/Presence 특권 intent를 켤 필요가 없습니다.
+일반 채팅 명령어 !bal·!pay·!add-money을 쓰려면 Developer Portal → Bot → Privileged Gateway Intents → Message Content Intent를 켜고 봇을 재시작하세요. Server Members/Presence intent는 필요 없습니다. 설정 전에는 봇을 @멘션한 뒤 !bal을 입력할 수 있습니다. 봇은 활성화된 Message Content 권한만 요청하므로 설정이 꺼져 있어도 포커 연결을 유지합니다.
 토큰은 로컬 `.env`에만 보관하고 ZIP, Git, 채팅, 스크린샷에 포함하지 마세요. 노출했다면 Developer Portal에서 재발급하세요.
 
 ### 실제 서버에서 확인하는 순서
 
-- 테스트 모드로 실행하고 `/포커 잔액`, `/포커 카드목록` 응답이 본인에게만 표시되는지 확인합니다.
+- 테스트 모드로 실행하고 `!bal`의 테스트 잔액 표시와 `/포커 카드목록`의 개인 응답을 확인합니다.
 - `/포커 테이블 만들기`로 생성하고 `/빅 스몰 설정`으로 블라인드를 확정합니다.
 - 2명 참여 후 방장의 `/포커 관리`에서 START를 눌러 카드, 콜/체크/레이즈, 다음 판을 확인합니다.
 - 시작 전 취소 시 참가비 반환도 확인합니다. 실제 언빌리버봇 연결은 이 확인을 마친 뒤 별도 DB로 전환합니다.
@@ -89,7 +101,13 @@ UNBELIEVABOAT_API_KEY=발급받은_API_토큰
 | `/포커 기록` | 최근 10판의 결과·순증감·다시보기. 선택 항목 `판`으로 번호 지정 |
 | `/포커 도움말` | 초보자용 진행·베팅 안내 |
 | `/포커 카드목록` | 정확한 52장 이미지 미리보기 |
-| `/포커 잔액` | 사용 가능한 잔액 표시 |
+| `!bal` | 현금·은행·합계 잔액을 채널에 표시 |
+| `!pay @유저 금액` | 보유 잔액으로 송금 |
+| `!lb` | 서버 잔액 순위 |
+| `!add-money @유저 금액` | 관리자 신규 지급. 본인 잔액 차감 없음 |
+| `!remove-money @유저 금액` | 관리자 잔액 차감 |
+| `!reset-money @유저` | 관리자 합계 잔액 전부 차감 |
+| `!help` | 전체 명령어 튜토리얼 |
 | `/ㅈㅈ` | 개인 YES/NO 확인 후 남은 칩 전액 기부 + 폴드 |
 
 디스코드의 일반 채널 입력은 다른 사람에게 보이므로 금액은 개인 입력창으로 받습니다.
