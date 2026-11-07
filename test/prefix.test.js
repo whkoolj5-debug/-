@@ -72,10 +72,10 @@ test('message intent discovery failure does not prevent the slash-command poker 
 
 test('English slash labels keep the original handler names and remove the old balance subcommand',async()=>{
  const {commands}=await import('../src/commands.js');
- const poker=commands.find(c=>c.name==='포커');assert.equal(poker.name_localizations['en-US'],'poker');
+ const poker=commands.find(c=>c.name==='테이블');assert.equal(poker.name_localizations['en-US'],'table');
  assert(!poker.options.some(o=>o.name==='잔액'));
- assert.equal(poker.options.find(o=>o.name==='카드').name_localizations['en-US'],'hand');
- assert.equal(poker.options.find(o=>o.name==='테이블').options[0].name_localizations['en-US'],'create');
+ assert.equal(commands.find(o=>o.name==='카드').name_localizations['en-US'],'hand');
+ assert.equal(poker.options.find(o=>o.name==='만들기').name_localizations['en-US'],'create');
 });
 
 test('real discord.js Client frozen intent fields are reassigned so message events are actually subscribed',async()=>{

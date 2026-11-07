@@ -173,3 +173,18 @@ test('joining opens a private waiting card sheet that fills at START without a c
  const i=interaction({user:'new-user',button:'seat:new:1'});await runtime.handle(i);assert.match(i.calls.at(-1)[1].content,/게임이 시작되면/);
  await runtime.handle(interaction({user:'owner',button:'start:new'}));const payload=i.calls.at(-1)[1];assert.match(payload.content,/내 카드표/);assert.equal(payload.files[0].name,'my-cards.png');assert.deepEqual(payload.components,[]);store.close();
 });
+
+test('short /카드 and /테이블 만들기 routes work without the old poker prefix',async()=>{
+ const {runtime,store}=await setup();const hand=interaction({user:'a',command:'카드'});await runtime.handle(hand);assert.equal(hand.calls.at(-1)[1].files[0].name,'my-cards.png');
+ const create=interaction({user:'new',command:'테이블',sub:'만들기'});await runtime.handle(create);assert.match(create.calls[0][1].content,/스타팅머니/);store.close();
+});
+
+test('/help opens help and registered commands do not require a poker prefix',async()=>{
+ const {runtime,store}=await setup(),i=interaction({command:'help'});await runtime.handle(i);assert.match(i.calls[0][1].content,/테이블 만들기/);
+ const {commands}=await import('../src/commands.js');assert(commands.some(c=>c.name==='help'));assert(!commands.some(c=>c.name.startsWith('포커')||c.name==='도움말'));store.close();
+});
+test('heads-up small blind cannot check a live big blind, while big blind can check after a call',async()=>{
+ const {runtime,service,store}=await setup(),t=await service.create('heads','g','c','small','S',500000);await service.join(t,'big','B',1);service.blinds(t,'small',20000,10000);service.start(t,'small');
+ const {publicRows}=await import('../src/ui.js');const buttons=()=>publicRows(t).flatMap(r=>r.components);assert.equal(t.hand.turn,'small');const check=buttons().find(b=>b.data.custom_id.startsWith('check:'));assert(check.data.disabled);assert.match(check.data.label,/10,000/);
+ const call=interaction({user:'small',button:`call:heads:${t.hand.rev}`});await runtime.handle(call);assert.equal(t.hand.turn,'big');assert.equal(buttons().find(b=>b.data.custom_id.startsWith('check:')).data.disabled,false);store.close();
+});

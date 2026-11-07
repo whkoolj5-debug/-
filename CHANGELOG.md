@@ -1,3 +1,10 @@
+## 2.6.0 · Short commands and responsive actions
+
+- `/테이블 만들기`, `/테이블 종료`, `/카드`, `/기록`, `/help`, `/족보`, `/거래 목록` — no leading 포커 command. English clients use `/table create`, `/table end`, `/hand`, `/history`, `/help`, `/rankings`, `/transactions list`. `!help` remains available.
+- Acknowledge interactions immediately and queue game mutations; image rendering no longer causes normal actions to be rejected as busy. Skip overlapping background timer jobs. Modal openers respond immediately without pre-deferral.
+- Private transient confirmations/errors disappear after 3 seconds; table, card sheets and interactive prompts persist.
+- Move YOUR TURN and remaining time to the lower table panel. A disabled check button explains the outstanding call amount.
+
 ## 2.5.1 · Host dependency recovery
 
 - Keep src/index.js as a dependency-free startup wrapper.
@@ -9,7 +16,7 @@
 
 - `/족보`: Royal Straight Flush 길드 족보 이미지.
 - 참가/START 시 채널에 본인 전용 **내 카드표**를 엽니다. 게임이 시작되면 개인 카드가 표시되고 다음 판에도 갱신됩니다. 카드표에는 행동 버튼이 없으며 DM도 보내지 않습니다.
-- Discord의 본인 전용 메시지 갱신 권한은 약 15분이며, 재시작이나 권한 만료 후에는 `/포커 카드`로 다시 열 수 있습니다. 일반 행동을 하면 새 본인 전용 카드표로 갱신됩니다.
+- Discord의 본인 전용 메시지 갱신 권한은 약 15분이며, 재시작이나 권한 만료 후에는 `/카드`로 다시 열 수 있습니다. 일반 행동을 하면 새 본인 전용 카드표로 갱신됩니다.
 - 테이블 원본 3000×1950. Discord 채팅 미리보기 크기는 클라이언트 제한을 따르며, 이미지를 클릭하면 크게 볼 수 있습니다.
 - 판 종료 시 별도 공용 카드 메시지와 테이블의 공용 카드를 지웁니다. 기록은 보존합니다.
 - 종료 인원 조건에 도달하지 않으면 5초 후 다음 판을 자동 시작합니다.
@@ -23,11 +30,11 @@
 
 # Table button cleanup
 
-- Remove card/history/surrender/theme/refresh buttons from the shared table; keep /포커 카드, /포커 기록 and /ㅈㅈ commands.
+- Remove card/history/surrender/theme/refresh buttons from the shared table; keep /카드, /기록 and /ㅈㅈ commands.
 
 # 2.3.1
 
-- Remove automatic DMs. Private cards are shown ephemerally in the game channel through /포커 카드.
+- Remove automatic DMs. Private cards are shown ephemerally in the game channel through /카드.
 - Public community cards and turn notices remain shared in the game channel.
 
 # 2.3.0
@@ -117,12 +124,12 @@ Poker Now의 코드, 로고, 테이블 이미지 또는 계정을 사용하지 �
 - 최소 / ½ 팟 / 팟 빠른 베팅. 콜 후 팟을 기준으로 계산하며 불가능한 선택과 중복 금액은 숨김.
 - 짧은 올인으로 레이즈 권한이 열리지 않은 상황도 서버의 기존 게임 규칙으로 재검증.
 - 내 카드 화면에 현재 내 족보와 내 차례의 행동 버튼 표시. 개인 응답 유지.
-- `/포커 기록` 및 판 번호 선택, 이전/다음 판, 공용 기록 JSON 내려받기.
+- `/기록` 및 판 번호 선택, 이전/다음 판, 공용 기록 JSON 내려받기.
 - 최근 10판, 판별 최대 200개 행동, 각 행동의 공용 테이블 상태를 SQLite에 보관.
 - 판 다시보기: 처음/이전 행동/다음 행동/결과 이동. 실제 게임 상태나 잔액을 변경하지 않음.
 - 쇼다운에서는 폴드하지 않은 참가자의 패와 족보 공개. 전원 폴드 승리는 패를 공개하지 않음.
 - 수령액과 순증감을 구분. 판별 순증감 합계는 0.
-- `/포커 도움말`, Windows 설치/시작/미리보기 실행 파일 추가.
+- `/help`, Windows 설치/시작/미리보기 실행 파일 추가.
 - 이전 판에서 열린 개인 버튼이 새 판에 사용되지 않도록 판 사이 revision을 이어감.
 - Discord 연결이 준비되지 않으면 자동 행동을 실행하지 않음. 종료 시 처리 중인 작업을 기다림.
 - sharp 0.35.5로 업데이트. 이미지 작업 병렬도와 캐시 사용량을 제한.

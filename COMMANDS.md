@@ -1,8 +1,15 @@
+## 2.6.0 · Short commands and responsive actions
+
+- `/테이블 만들기`, `/테이블 종료`, `/카드`, `/기록`, `/help`, `/족보`, `/거래 목록` — no leading 포커 command. English clients use `/table create`, `/table end`, `/hand`, `/history`, `/help`, `/rankings`, `/transactions list`. `!help` remains available.
+- Acknowledge interactions immediately and queue game mutations; image rendering no longer causes normal actions to be rejected as busy. Skip overlapping background timer jobs. Modal openers respond immediately without pre-deferral.
+- Private transient confirmations/errors disappear after 3 seconds; table, card sheets and interactive prompts persist.
+- Move YOUR TURN and remaining time to the lower table panel. A disabled check button explains the outstanding call amount.
+
 ## 테이블 종료 / Table ending
 
 테이블 생성 후 종료 인원 1~6명을 선택합니다. 선택 인원보다 많은 참가자가 있어야 START할 수 있습니다. 판이 끝났을 때 칩이 남고 포기하지 않은 사람이 설정 인원 이하이면 테이블을 닫고 각자의 남은 칩을 잔액으로 반환합니다.
 
-`/테이블 종료` → 방장만 사용 → 종료 확인. 진행 중인 판은 무효 처리하여 해당 판에 넣은 칩을 본인에게 돌려준 뒤 잔액으로 정산합니다. 완료된 판의 결과는 유지합니다. `/ㅈㅈ`는 명령어로 유지됩니다. 개인 카드는 채널에서 `/포커 카드`로 본인에게만 표시됩니다. DM은 보내지 않습니다.
+`/테이블 종료` → 방장만 사용 → 종료 확인. 진행 중인 판은 무효 처리하여 해당 판에 넣은 칩을 본인에게 돌려준 뒤 잔액으로 정산합니다. 완료된 판의 결과는 유지합니다. `/ㅈㅈ`는 명령어로 유지됩니다. 개인 카드는 채널에서 `/카드`로 본인에게만 표시됩니다. DM은 보내지 않습니다.
 
 # RSF Poker Bot — Command Tutorial
 
@@ -45,15 +52,15 @@ The server currently does not have the original UnbelievaBoat bot. If it is adde
 
 English Discord clients show localized command names:
 
-1. `/poker table create` — Create a table and enter starting chips.
+1. `/table create` — Create a table and enter starting chips.
 2. `/blinds setup set` — The host confirms big/small blinds.
 3. Players join using the table button. **2–7 players can start.**
 4. `/poker manage` — The host presses START.
-5. `/poker hand` — View your private cards. Bet only on your turn.
+5. `/hand` — View your private cards. Bet only on your turn.
 6. The flop, turn and river appear as public card images. Unrevealed cards stay hidden.
 7. The host starts the next hand from the management panel.
 
-`/poker history` opens recent hand results and replay. `/surrender` permanently forfeits all remaining chips and differs from a normal fold.
+`/history` opens recent hand results and replay. `/surrender` permanently forfeits all remaining chips and differs from a normal fold.
 Korean Discord clients retain the existing Korean slash-command labels.
 
 ## One-time message setup
@@ -85,9 +92,9 @@ No live credentials are included, and real API writes must be verified in the us
 LIVE payments have a debit step and a credit step; the public API does not provide an atomic cross-user transfer through these endpoints.
 If a response is lost, this bot does not automatically retry the write or refund the sender, because doing so could duplicate money.
 
-1. Use `/poker-transactions list` (Korean: `/포커거래 목록`) to find uncertain writes.
+1. Use `/transactions list` (Korean: `/거래 목록`) to find uncertain writes.
 2. Check the actual UnbelievaBoat transaction/audit records.
-3. Use `/poker-transactions confirm` (`/포커거래 확인`) to mark the write applied or not applied.
+3. Use `/transactions confirm` (`/거래 확인`) to mark the write applied or not applied.
 4. Use `!money-retry transaction-id` to resume only the remaining confirmed steps.
 
 Do not guess the applied status. Uncertain writes freeze additional money changes involving those accounts in this bot.

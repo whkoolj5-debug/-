@@ -28,9 +28,9 @@ export const moneyHelp=`**EVERYONE**
 \`!money-retry transaction-id\` — Resume only after uncertain external writes have been checked.
 
 **POKER**
-Create: /poker table create → enter starting chips.
-Blinds: /blinds setup set. With 2–7 players, the host uses /poker manage → START.
-Cards: /poker hand. History and replay: /poker history.
+Create: /table create → enter starting chips.
+Blinds: /blinds setup set. With 2–7 players, the host uses the table START button.
+Cards: /hand. History and replay: /history.
 /surrender permanently forfeits ALL remaining chips; it is different from a normal fold.
 
 Aliases: !balance and !money = !bal; !give-money = !pay; !leaderboard = !lb; !clear-money = !reset-money.
@@ -51,8 +51,8 @@ export const moneyHelpKo=`**일반 회원 명령어**
 \`!money-retry 거래번호\` — 실제 외부 거래 반영 여부를 확인한 뒤 중단된 처리 이어가기
 
 **포커 진행**
-/포커 테이블 만들기 → 시작머니 입력 → /빅 스몰 설정 → 2~7명 참가 → 방장이 /포커 관리에서 START
-/포커 카드: 개인 패 · /포커 기록: 판 결과와 다시보기
+/테이블 만들기 → 시작머니 입력 → /빅 스몰 설정 → 2~7명 참가 → 방장이 테이블 아래 START
+/카드: 개인 패 · /기록: 판 결과와 다시보기
 /ㅈㅈ는 일반 폴드와 달리 남은 칩 전액을 기부하고 영구 포기합니다.
 
 별칭: !balance·!money = !bal, !give-money = !pay, !leaderboard = !lb, !clear-money = !reset-money.
@@ -97,7 +97,7 @@ export function createPrefixCommands({store,economy,config,botId,now=Date.now}){
    if(['grant','remove','clear','pending','retry'].includes(kind))await admin(m);
    if(kind==='pending'){
     const lines=money.pending(m.guildId).map(o=>`${o.id} · ${o.kind} · <@${o.target}> · ${o.amount}`);
-    await send(m,(lines.join('\n')||'No interrupted money commands.').slice(0,1800)+'\nFor uncertain API writes: /poker-transactions list → check external audit records → /poker-transactions confirm → !money-retry transaction-id.');return true;
+    await send(m,(lines.join('\n')||'No interrupted money commands.').slice(0,1800)+'\nFor uncertain API writes: /transactions list → check external audit records → /transactions confirm → !money-retry transaction-id.');return true;
    }
    if(kind==='retry'){
     if(args.length!==1)throw Error('Usage: !money-retry transaction-id');

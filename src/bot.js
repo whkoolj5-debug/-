@@ -1,3 +1,4 @@
+import {withTransientReplies,opensModal,acknowledgeQueuedInteraction} from './interaction-flow.js';
 import {replyInteractionError} from './interaction-errors.js';
 import './load-env.js';
 import {Client,GatewayIntentBits,Events,MessageFlags,Routes} from 'discord.js';
@@ -26,19 +27,20 @@ let chain=Promise.resolve(),busy=0,closing=false;
 const serial=fn=>{busy++;const task=chain.then(fn).finally(()=>busy--);chain=task.catch(e=>console.error('작업 처리 실패:',e.message));return task;};
 client.on(Events.MessageCreate,m=>{
  if(closing||!parsePrefix(m.content,client.user?.id)||m.author?.bot||m.webhookId||m.guildId!==config.guildId)return;
- if(busy)return m.reply({content:'처리 중입니다. 잠시 후 다시 입력해주세요.',allowedMentions:{parse:[],repliedUser:false}}).catch(()=>{});
  serial(()=>prefix.handle(m)).catch(e=>console.error('메시지 명령어 처리:',e.message));
 });
-client.on(Events.InteractionCreate,i=>{
- if(closing||busy)return i.reply({...E,content:'다른 동작을 처리 중입니다. 잠시 후 다시 눌러주세요.'}).catch(()=>{});
- return serial(async()=>{
- try{await handle(i);}catch(e){console.error(e.message);const msg=e.message?.slice(0,1500)||'처리 중 오류가 발생했습니다.';
-  await replyInteractionError(i,msg).catch(()=>{});
- }
-});});
+client.on(Events.InteractionCreate,async raw=>{
+ let i=withTransientReplies(raw);
+ if(closing)return i.reply({...E,content:'봇을 종료 중입니다. 잠시 후 다시 이용해주세요.'}).catch(()=>{});
+ const execute=async()=>{try{await handle(i);}catch(e){console.error(e.message);await replyInteractionError(i,e.message?.slice(0,1500)||'처리 중 오류가 발생했습니다.').catch(()=>{});}};
+ // Discord modals must be the initial response; opening them does not mutate game chips.
+ if(opensModal(i))return execute();
+ try{i=await acknowledgeQueuedInteraction(i);}catch{return;}
+ return serial(execute);
+});
 client.once(Events.ClientReady,async()=>{
  console.log(`Ready: ${client.user.tag} · RSF Poker ${version} (${mode})`);
- const schema='guild-ranking-auto-hand-v1';
+ const schema='short-commands-v1';
  if(store.db.prepare("SELECT value FROM metadata WHERE key='command_schema'").get()?.value!==schema){
   await serial(async()=>{try{
    await client.rest.put(Routes.applicationGuildCommands(config.clientId,config.guildId),{body:commands});
@@ -51,7 +53,7 @@ client.once(Events.ClientReady,async()=>{
 });
 // Offline recovery is rendered on ready; do not advance restored hands while disconnected.
 const timer=setInterval(()=>{
- if(closing||!client.isReady())return;
+ if(closing||!client.isReady()||busy)return;
  serial(async()=>{await runTimeouts();await refreshClocks();}).catch(e=>console.error('턴 처리:',e.message));
 },1000);timer.unref();
 const server=createServer((_req,res)=>{

@@ -7,7 +7,7 @@ test('seat layouts fit five-button limit; public START is disabled until two pla
  t.seats[1]='2';assert(hostRows(t).flatMap(r=>r.components).some(b=>b.data.label==='START'));
  assert.equal(publicRows(t).flatMap(r=>r.components).find(b=>b.data.label==='START').data.disabled,false);
  for(const r of [...publicRows(t),...hostRows(t)])assert(r.toJSON().components.length<=5);
- assert(commands.find(c=>c.name==='포커').options.find(c=>c.name==='테이블').options.find(c=>c.name==='만들기'));
+ assert(commands.find(c=>c.name==='테이블').options.find(c=>c.name==='만들기'));
  assert(commands.find(c=>c.name==='빅').options[0].options.find(c=>c.name==='설정'));
 });
 test('every logical card has the matching correct pip-count SVG and PNG',async()=>{

@@ -68,14 +68,15 @@ async function handle(i){
  if(!i.inGuild())throw Error('서버 채널에서 사용해주세요.');
  if(i.guildId!==config.guildId)throw Error('설정된 서버에서만 사용할 수 있습니다.');
  if(i.isChatInputCommand()){
-  const sub=i.options.getSubcommand(false);
+  const directSub={help:'도움말',관리:'관리',도움말:'도움말',기록:'기록',카드:'카드',카드목록:'카드목록'};
+  const sub=directSub[i.commandName]??i.options.getSubcommand(false);
   if(i.commandName==='족보')return i.reply({files:[new AttachmentBuilder('assets/rsf-hand-rankings.webp',{name:'RSF-hand-rankings.webp'})],allowedMentions:{parse:[]}});
   if(i.commandName==='테이블'&&sub==='종료'){const t=find(i);service.owner(t,i.user.id);return i.reply({...E,content:'테이블을 종료할까요? 진행 중인 판은 무효 처리하고, 그 판에 넣은 칩과 남은 칩을 반환합니다. 이미 완료된 판의 결과는 유지합니다.',components:confirm('endtable',t,`:${t.handNo}:${t.hand?.rev??0}`)});}
-  if(i.commandName==='포커'){
+  if(i.commandName==='포커'||directSub[i.commandName]||(i.commandName==='테이블'&&sub==='만들기')){
    if(sub==='만들기'&&find(i)?.ownerId===i.user.id)return panel(i,find(i));
    if(sub==='만들기')return i.reply({...E,content:'게임 스타팅머니를 정해주세요.',components:rows([btn('createinput','시작머니 입력',ButtonStyle.Primary)])});
    if(sub==='관리')return panel(i,find(i));
-   if(sub==='도움말')return i.reply({...E,content:'잔액·송금·관리자 지급 안내는 !help를 입력하세요.\n① /포커 테이블 만들기 → 시작머니 입력\n② /빅 스몰 설정 → 방장만 설정\n③ 2명 이상 참가 → 방장이 테이블 아래 START\n④ 참가 시 열린 본인 전용 화면에 개인 카드 자동 표시 → 내 차례에 행동\n⑤ 판 종료 → 방장이 다음 판 시작\n\n콜은 표시된 금액만 추가합니다. 레이즈와 빠른 베팅의 숫자는 이번 라운드 총액입니다. 팟 버튼은 콜 후 팟 크기만큼 레이즈합니다. ㅈㅈ는 일반 폴드와 달리 남은 칩 전액을 기부하고 영구 포기합니다.\n/포커 기록으로 이전 판 결과와 순증감을 확인할 수 있습니다.'});
+   if(sub==='도움말')return i.reply({...E,content:'잔액·송금·관리자 지급 안내는 !help를 입력하세요.\n① /테이블 만들기 → 시작머니 입력\n② /빅 스몰 설정 → 방장만 설정\n③ 2명 이상 참가 → 방장이 테이블 아래 START\n④ 참가 시 열린 본인 전용 화면에 개인 카드 자동 표시 → 내 차례에 행동\n⑤ 판 종료 → 5초 후 다음 판 자동 시작\n\n콜은 표시된 금액만 추가합니다. 레이즈와 빠른 베팅의 숫자는 이번 라운드 총액입니다. 팟 버튼은 콜 후 팟 크기만큼 레이즈합니다. ㅈㅈ는 일반 폴드와 달리 남은 칩 전액을 기부하고 영구 포기합니다.\n/기록으로 이전 판 결과와 순증감을 확인할 수 있습니다.'});
    if(sub==='기록'){const t=find(i)||[...service.tables.values()].filter(t=>t.guildId===i.guildId&&t.seats.includes(i.user.id)).at(-1);if(!t)throw Error('참가했던 테이블이 없습니다.');return history(i,t,i.options.getInteger('판')??undefined);}
    if(sub==='카드')return cards(i,find(i));
    if(sub==='카드목록')return i.reply({...E,files:[new AttachmentBuilder('assets/deck-preview.png',{name:'52-cards.png'})]});
@@ -83,7 +84,7 @@ async function handle(i){
   }
   if(i.commandName==='빅'){const t=find(i);service.owner(t,i.user.id);if(t.status!=='lobby')throw Error('게임 시작 전만 설정할 수 있습니다.');return i.reply({...E,content:'빅블라인드 금액을 설정해주세요.',components:rows([btn(`biginput:${t.id}`,'금액 입력',ButtonStyle.Primary)])});}
   if(i.commandName==='ㅈㅈ')return surrender(i,find(i));
-  if(i.commandName==='포커거래'){
+  if(i.commandName==='거래'||i.commandName==='포커거래'){
    if(!i.memberPermissions.has(PermissionFlagsBits.Administrator))throw Error('서버 관리자 전용입니다.');
    if(sub==='목록')return i.reply({...E,content:store.pending().filter(x=>x.guild===i.guildId).map(x=>`${x.id} · <@${x.user}> · ${x.amount}`).join('\n').slice(0,1900)||'미확정 거래가 없습니다.'});
    const id=i.options.getString('거래번호'),tx=store.transfer(id);if(!tx||tx.guild!==i.guildId||tx.status!=='pending')throw Error('해당 미확정 거래가 없습니다.');

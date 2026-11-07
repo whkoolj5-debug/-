@@ -1,3 +1,10 @@
+## 2.6.0 · Short commands and responsive actions
+
+- `/테이블 만들기`, `/테이블 종료`, `/카드`, `/기록`, `/help`, `/족보`, `/거래 목록` — no leading 포커 command. English clients use `/table create`, `/table end`, `/hand`, `/history`, `/help`, `/rankings`, `/transactions list`. `!help` remains available.
+- Acknowledge interactions immediately and queue game mutations; image rendering no longer causes normal actions to be rejected as busy. Skip overlapping background timer jobs. Modal openers respond immediately without pre-deferral.
+- Private transient confirmations/errors disappear after 3 seconds; table, card sheets and interactive prompts persist.
+- Move YOUR TURN and remaining time to the lower table panel. A disabled check button explains the outstanding call amount.
+
 ## Startup recovery (2.5.1)
 
 The startup file remains `src/index.js`. When host dependency caching leaves discord.js or sharp missing, startup installs locked production dependencies once and verifies them before loading the bot. Existing .env and game data are preserved. Installation requires registry network access and write access to node_modules. If these are blocked, startup reports the installation error rather than looping. Node >=22.13 is supported.
@@ -6,7 +13,7 @@ The startup file remains `src/index.js`. When host dependency caching leaves dis
 
 - `/족보`: Royal Straight Flush 길드 족보 이미지.
 - 참가/START 시 채널에 본인 전용 **내 카드표**를 엽니다. 게임이 시작되면 개인 카드가 표시되고 다음 판에도 갱신됩니다. 카드표에는 행동 버튼이 없으며 DM도 보내지 않습니다.
-- Discord의 본인 전용 메시지 갱신 권한은 약 15분이며, 재시작이나 권한 만료 후에는 `/포커 카드`로 다시 열 수 있습니다. 일반 행동을 하면 새 본인 전용 카드표로 갱신됩니다.
+- Discord의 본인 전용 메시지 갱신 권한은 약 15분이며, 재시작이나 권한 만료 후에는 `/카드`로 다시 열 수 있습니다. 일반 행동을 하면 새 본인 전용 카드표로 갱신됩니다.
 - 테이블 원본 3000×1950. Discord 채팅 미리보기 크기는 클라이언트 제한을 따르며, 이미지를 클릭하면 크게 볼 수 있습니다.
 - 판 종료 시 별도 공용 카드 메시지와 테이블의 공용 카드를 지웁니다. 기록은 보존합니다.
 - 종료 인원 조건에 도달하지 않으면 5초 후 다음 판을 자동 시작합니다.
@@ -15,11 +22,11 @@ The startup file remains `src/index.js`. When host dependency caching leaves dis
 
 테이블 생성 후 종료 인원 1~6명을 선택합니다. 선택 인원보다 많은 참가자가 있어야 START할 수 있습니다. 판이 끝났을 때 칩이 남고 포기하지 않은 사람이 설정 인원 이하이면 테이블을 닫고 각자의 남은 칩을 잔액으로 반환합니다.
 
-`/테이블 종료` → 방장만 사용 → 종료 확인. 진행 중인 판은 무효 처리하여 해당 판에 넣은 칩을 본인에게 돌려준 뒤 잔액으로 정산합니다. 완료된 판의 결과는 유지합니다. `/ㅈㅈ`는 명령어로 유지됩니다. 개인 카드는 채널에서 `/포커 카드`로 본인에게만 표시됩니다. DM은 보내지 않습니다.
+`/테이블 종료` → 방장만 사용 → 종료 확인. 진행 중인 판은 무효 처리하여 해당 판에 넣은 칩을 본인에게 돌려준 뒤 잔액으로 정산합니다. 완료된 판의 결과는 유지합니다. `/ㅈㅈ`는 명령어로 유지됩니다. 개인 카드는 채널에서 `/카드`로 본인에게만 표시됩니다. DM은 보내지 않습니다.
 
 ## 2.3.0 table update
 
-Table images are 1800×1170. SMALL BLIND and BIG BLIND amounts appear on the table. START and host controls are on the public message; only the host can use them. Hole cards appear only to the player in the game channel with /포커 카드. No DMs are sent. Discord requires an interaction before an ephemeral response can be shown. Community cards are shared publicly. YOUR TURN and time remaining appear on the image, refreshed every 10 seconds; the Discord deadline updates between refreshes.
+Table images are 1800×1170. SMALL BLIND and BIG BLIND amounts appear on the table. START and host controls are on the public message; only the host can use them. Hole cards appear only to the player in the game channel with /카드. No DMs are sent. Discord requires an interaction before an ephemeral response can be shown. Community cards are shared publicly. YOUR TURN and time remaining appear on the image, refreshed every 10 seconds; the Discord deadline updates between refreshes.
 
 # RSF Poker Club · 디스코드 텍사스 홀덤 봇 2.2
 
@@ -49,9 +56,9 @@ Node.js 24 이상. 2~7명이 시작하고, 탈락 후에는 2명까지 계속 �
 - 자체 디자인 테이블: 차례 강조, 딜러/SB/BB, 베팅 칩, 큰 공용 카드와 쇼다운 결과.
 - 최소 / ½ 팟 / 팟 빠른 베팅, 콜 금액·레이즈 범위·행동 마감 시간.
 - 개인 카드 화면에서 내 족보 확인과 베팅. 내 차례가 아니면 행동 버튼을 표시하지 않습니다.
-- `/포커 기록`: 최근 10판 조회, 순증감, 공개 기록 파일, 행동별 판 다시보기.
-- 방장 `/포커 관리`의 테마 버튼: 에메랄드 → 미드나이트 → 버건디.
-- `/포커 도움말`, `SETUP-WINDOWS.cmd`, `START-BOT.cmd`, `PREVIEW-WINDOWS.cmd`.
+- `/기록`: 최근 10판 조회, 순증감, 공개 기록 파일, 행동별 판 다시보기.
+- 방장 `/관리`의 테마 버튼: 에메랄드 → 미드나이트 → 버건디.
+- `/help`, `SETUP-WINDOWS.cmd`, `START-BOT.cmd`, `PREVIEW-WINDOWS.cmd`.
 
 [업데이트·디스호스트 안내](UPDATE-GUIDE-KO.md) · [변경 내용](CHANGELOG.md)
 
@@ -83,9 +90,9 @@ macOS/Linux에서는 `cp .env.example .env`, Windows PowerShell에서는 `Copy-I
 
 ### 실제 서버에서 확인하는 순서
 
-- 테스트 모드로 실행하고 `!bal`의 테스트 잔액 표시와 `/포커 카드목록`의 개인 응답을 확인합니다.
-- `/포커 테이블 만들기`로 생성하고 `/빅 스몰 설정`으로 블라인드를 확정합니다.
-- 2명 참여 후 방장의 `/포커 관리`에서 START를 눌러 카드, 콜/체크/레이즈, 다음 판을 확인합니다.
+- 테스트 모드로 실행하고 `!bal`의 테스트 잔액 표시와 `/카드목록`의 개인 응답을 확인합니다.
+- `/테이블 만들기`로 생성하고 `/빅 스몰 설정`으로 블라인드를 확정합니다.
+- 2명 참여 후 방장의 `/관리`에서 START를 눌러 카드, 콜/체크/레이즈, 다음 판을 확인합니다.
 - 시작 전 취소 시 참가비 반환도 확인합니다. 실제 언빌리버봇 연결은 이 확인을 마친 뒤 별도 DB로 전환합니다.
 - 명령어가 안 보이면 초대 서버와 `GUILD_ID`, `applications.commands` 범위, 명령어 등록 성공 여부를 확인합니다.
 - 401은 토큰, 403/서버 접근 실패는 초대 및 권한, Gateway 시간 초과는 방화벽과 WebSocket 연결을 확인합니다.
@@ -117,13 +124,13 @@ UNBELIEVABOAT_API_KEY=발급받은_API_토큰
 
 | 명령어 | 동작 |
 |---|---|
-| `/포커 테이블 만들기` | 본인만 보이는 안내 → 시작머니 입력창 → 참가비 차감 → 테이블 생성 |
+| `/테이블 만들기` | 본인만 보이는 안내 → 시작머니 입력창 → 참가비 차감 → 테이블 생성 |
 | `/빅 스몰 설정` | 방장만 빅 → 스몰 → YES/NO 순서로 설정 |
-| `/포커 관리` | 방장 개인 관리 화면. 2명 이상일 때 초록 START 표시 |
-| `/포커 카드` | 본인 패 2장을 본인만 보는 카드 이미지로 표시 |
-| `/포커 기록` | 최근 10판의 결과·순증감·다시보기. 선택 항목 `판`으로 번호 지정 |
-| `/포커 도움말` | 초보자용 진행·베팅 안내 |
-| `/포커 카드목록` | 정확한 52장 이미지 미리보기 |
+| `/관리` | 방장 개인 관리 화면. 2명 이상일 때 초록 START 표시 |
+| `/카드` | 본인 패 2장을 본인만 보는 카드 이미지로 표시 |
+| `/기록` | 최근 10판의 결과·순증감·다시보기. 선택 항목 `판`으로 번호 지정 |
+| `/help` | 초보자용 진행·베팅 안내 |
+| `/카드목록` | 정확한 52장 이미지 미리보기 |
 | `!bal` | 현금·은행·합계 잔액을 채널에 표시 |
 | `!pay @유저 금액` | 보유 잔액으로 송금 |
 | `!lb` | 서버 잔액 순위 |
@@ -140,7 +147,7 @@ UNBELIEVABOAT_API_KEY=발급받은_API_토큰
 좌석 버튼은 디스코드 제한에 맞춰 5개 + 2개로 나뉩니다. 좌석 확정 직전에 잔액을 다시 검사합니다.
 
 테이블의 START는 2명 이상 참가하고 블라인드를 확정하면 활성화됩니다.
-디스코드 개인 응답의 갱신 가능 시간(약 15분)이 지나거나 봇을 재시작한 경우 `/포커 관리`로 다시 엽니다.
+디스코드 개인 응답의 갱신 가능 시간(약 15분)이 지나거나 봇을 재시작한 경우 `/관리`로 다시 엽니다.
 공개 화면에는 START가 나타나지 않습니다. 모든 시작/설정 동작은 방장 권한도 다시 확인합니다.
 
 플레이어는 ‘내 카드 보기’를 눌러 본인 패를 확인합니다. 공용 카드는 플롭 3장 → 턴 1장 → 리버 1장으로
@@ -156,7 +163,7 @@ UNBELIEVABOAT_API_KEY=발급받은_API_토큰
 상대가 모두 폴드해 끝난 판은 승자의 패도 공개하지 않습니다. 폴드한 패는 기록 파일에도 포함되지 않습니다.
 수령액은 팟에서 받은 총액이고 순증감은 수령액에서 이번 판에 넣은 칩을 뺀 값입니다.
 
-`/포커 기록` → ‘판 다시보기’로 각 행동을 되짚을 수 있습니다. 다시보기는 개인 응답이며 실제 게임에 영향을 주지 않습니다.
+`/기록` → ‘판 다시보기’로 각 행동을 되짚을 수 있습니다. 다시보기는 개인 응답이며 실제 게임에 영향을 주지 않습니다.
 최근 10판, 각 판 최근 200개 행동을 보관합니다. 업그레이드 전에 저장되지 않은 단계는 복원할 수 없습니다.
 기록 JSON은 공용 카드·공개 쇼다운·행동·칩 변화만 포함합니다. 실제 DB에는 진행 복구용 비공개 패도 있으므로 DB를 공유하면 안 됩니다.
 
@@ -181,10 +188,10 @@ UNBELIEVABOAT_API_KEY=발급받은_API_토큰
 언빌리버봇 요청 후 네트워크가 끊기면 실제 반영 여부를 알 수 없으므로 자동 재시도하지 않습니다.
 해당 참가 처리를 일시정지하거나 정산 완료를 기다립니다.
 
-서버 관리자는 `/포커거래 목록`에서 미확정 거래를 확인한 후 **언빌리버봇 거래/감사 기록으로 실제 반영 여부를 확인하고**
-`/포커거래 확인 거래번호:... 반영됨:True/False`로 기록합니다.
-미반영 참가비는 다시 참여 버튼을 누릅니다. 생성자 참가비가 미반영이면 `/포커 관리`에서 대기 테이블을 취소하고 다시 만드세요.
-정산 중이면 방장이 `/포커 관리`의 ‘정산 이어서 처리’를 사용합니다.
+서버 관리자는 `/거래 목록`에서 미확정 거래를 확인한 후 **언빌리버봇 거래/감사 기록으로 실제 반영 여부를 확인하고**
+`/거래 확인 거래번호:... 반영됨:True/False`로 기록합니다.
+미반영 참가비는 다시 참여 버튼을 누릅니다. 생성자 참가비가 미반영이면 `/관리`에서 대기 테이블을 취소하고 다시 만드세요.
+정산 중이면 방장이 `/관리`의 ‘정산 이어서 처리’를 사용합니다.
 확인하지 않고 True/False를 임의 선택하면 잔액 불일치가 생깁니다.
 DB는 개인 패도 포함하므로 공개로 올리지 말고 정기 백업하세요. 한 DB에는 봇 프로세스 하나만 실행합니다.
 

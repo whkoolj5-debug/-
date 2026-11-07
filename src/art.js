@@ -54,7 +54,7 @@ export async function renderTable(t){
  ensureFontCache();
  const width=3000,height=1950,scale=2.5,h=t.hand,theme=tableTheme(t);
  const clock=turnClock(t,t.clockNow??Date.now());
- const pos=[[600,130],[951,199],[1036,431],[812,636],[388,636],[164,431],[249,199]];
+ const pos=[[600,130],[951,199],[1036,431],[900,636],[300,636],[164,431],[249,199]];
  const fmt=n=>Number(n||0).toLocaleString('en-US');
  const text=(x,y,label,size=16,color='#e4efef',extra='')=>`<text x="${x}" y="${y}" fill="${color}" font-family="Noto Sans KR, sans-serif" font-size="${size}" ${extra}>${esc(label)}</text>`;
  const center='text-anchor="middle"';
@@ -82,7 +82,7 @@ export async function renderTable(t){
  <rect x="480" y="252" width="240" height="46" rx="23" fill="#082b29" stroke="#408b76"/>
  ${text(600,282,h?`POT  ${fmt(h.pot)}`:'TEXAS HOLD’EM',22,'#f2dca9',center+' font-weight="bold"')}
  ${text(600,443,h?.done?'RESULTS BELOW':h?`CURRENT BET  ${fmt(h.currentBet)}`:`${t.seats.filter(Boolean).length} / 7 PLAYERS`,14,'#a7c8ba',center+' letter-spacing="1"')}
- ${clock?`${text(600,481,'YOUR TURN',34,'#65f4cb',center+' font-weight="bold" letter-spacing="3"')}${text(600,511,(t.players[h.turn]?.name||'').slice(0,20),20,'#ebfff5',center+' font-weight="bold"')}${text(600,541,`TIME LEFT  ${clock.remaining}s`,26,clock.remaining<=15?'#ff877e':'#f4d58a',center+' font-weight="bold"')}<rect x="460" y="553" width="280" height="8" rx="4" fill="#092d2a"/><rect x="460" y="553" width="${Math.round(280*clock.ratio)}" height="8" rx="4" fill="${clock.remaining<=15?'#ff877e':'#65f4cb'}"/>`:text(600,485,'RSF · TEXAS HOLD’EM',12,'#69998d',center+' letter-spacing="4"')}`;
+ ${text(600,485,'RSF · TEXAS HOLD’EM',12,'#69998d',center+' letter-spacing="4"')}`;
  const cardLayers=[];
  for(let i=0;i<5;i++){
   const left=384+i*88,top=316,c=h?.done&&!t.replay?null:h?.board[i];
@@ -99,7 +99,7 @@ export async function renderTable(t){
   if(turn||win)svg+=`<rect x="${x-101}" y="${y-42}" width="202" height="100" rx="22" fill="${color}" opacity=".12"/>`;
   svg+=`<rect x="${x-95}" y="${y-36}" width="190" height="88" rx="18" fill="${turn?'#183e3b':win?'#343228':'#14212c'}" stroke="${color}" stroke-width="${turn||win?3:1.5}"/>`;
   svg+=`<circle cx="${x-67}" cy="${y-7}" r="17" fill="${turn?'#4de1bd':'#293d48'}"/>${text(x-67,y-1,i+1,14,turn?'#0b3028':'#aec4c9',center+' font-weight="bold"')}`;
-  svg+=text(x-38,y-6,Array.from(p.name).slice(0,9).join('')+(Array.from(p.name).length>9?'…':''),14,folded||out?'#82969b':'#eef4ef','font-weight="bold"');
+  svg+=text(x-38,y-6,Array.from(p.name.normalize('NFKC')).slice(0,9).join('')+(Array.from(p.name.normalize('NFKC')).length>9?'…':''),14,folded||out?'#82969b':'#eef4ef','font-weight="bold"');
   svg+=text(x-38,y+23,fmt(chips),21,win?'#f5d787':turn?'#60e6c8':'#e2eae5','font-weight="bold"');
   const status=win?'WINNER':p.quit?'영구 포기':out?'탈락':folded?'FOLD':seat?.chips===0?'ALL-IN':turn?'YOUR TURN':'';
   if(status)svg+=text(x,y+70,status,11,color,center+' letter-spacing="1"');
@@ -116,6 +116,7 @@ export async function renderTable(t){
    }
   }
  }
+ if(clock)svg+=`<rect x="430" y="580" width="340" height="132" rx="18" fill="#0c202a" stroke="#2b625d"/>${text(600,612,'YOUR TURN',30,'#65f4cb',center+' font-weight="bold" letter-spacing="3"')}${text(600,639,Array.from((t.players[h.turn]?.name||'').normalize('NFKC')).slice(0,18).join(''),17,'#ebfff5',center+' font-weight="bold"')}${text(600,672,`TIME LEFT  ${clock.remaining}s`,24,clock.remaining<=15?'#ff877e':'#f4d58a',center+' font-weight="bold"')}<rect x="460" y="688" width="280" height="7" rx="3" fill="#092d2a"/><rect x="460" y="688" width="${Math.round(280*clock.ratio)}" height="7" rx="3" fill="${clock.remaining<=15?'#ff877e':'#65f4cb'}"/>`;
  let footer='친구들과 즐기는 텍사스 홀덤 · 개인 카드는 나에게만 표시됩니다';
  if(h?.done)footer=h.results.flatMap(r=>Object.entries(r.payouts).map(([id,n])=>`${t.players[id]?.name||'플레이어'} +${fmt(n)}`)).join('  /  ');
  else if(h?.log?.length){const a=h.log.at(-1);footer=`최근 행동 · ${t.players[a.id]?.name||'플레이어'} ${actionName(a.kind)}${a.amount?` +${fmt(a.amount)}`:''}`;}

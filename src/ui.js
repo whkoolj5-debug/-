@@ -13,7 +13,7 @@ export function publicRows(t){
  const controls=[];
  if(h.done)return [...controls,...hostRows(t)];
  const actions=rows([
-  btn(`check${tag}`,'체크',ButtonStyle.Secondary,!canAct(h,h.turn,'check')),
+  btn(`check${tag}`,info.call>0?`체크 불가 · 콜 ${money(info.call)} 필요`:'체크',ButtonStyle.Secondary,!canAct(h,h.turn,'check')),
   btn(`call${tag}`,`콜 ${money(info.call)}`,ButtonStyle.Success,info.call===0),
   btn(`raise${tag}`,info.max<info.min?'직접 입력 · 올인만 가능':`직접 입력 · 최소 ${money(info.min)}`,ButtonStyle.Primary,!info.canRaise),
   btn(`allin${tag}`,'올인',ButtonStyle.Danger,!canAct(h,h.turn,'allin')),
@@ -48,7 +48,7 @@ export function embed(t,mode,turnSeconds=90){
  text+='\n'+t.seats.map((id,i)=>`${i+1}번 · ${id?`<@${id}> · ${money(h?.seats[id]?.chips??t.startingMoney)} 칩${t.players[id].quit?' · 영구 포기':h?.folded.includes(id)?' · 폴드':''}`:'빈자리'}`).join('\n');
  if(h?.log?.length)text+='\n\n**최근 행동**\n'+h.log.slice(-3).map(a=>`<@${a.id}> ${actionName(a.kind)}${a.automatic?' (시간 초과)':''}${a.amount?` +${money(a.amount)}`:''}`).join('\n');
  if(t.status==='lobby')text+='\n\n2명 이상 참가 + BIG / SMALL 확정 → 방장이 아래 START · 방장 전용 설정은 다른 참가자가 누를 수 없습니다.';
- return new EmbedBuilder().setColor(h?.done?0xd7ad63:Number.parseInt(tableTheme(t).ink.slice(1),16)).setTitle(`RSF POKER · ${t.ownerName}님의 테이블`).setDescription(text.slice(0,4000)).setImage('attachment://table.png').setFooter({text:'설정/START/다음 판은 방장 전용 · 내 카드표는 참가/START 시 본인 전용으로 열림 · 만료 시 /포커 카드'});
+ return new EmbedBuilder().setColor(h?.done?0xd7ad63:Number.parseInt(tableTheme(t).ink.slice(1),16)).setTitle(`RSF POKER · ${t.ownerName}님의 테이블`).setDescription(text.slice(0,4000)).setImage('attachment://table.png').setFooter({text:'설정/START/다음 판은 방장 전용 · 내 카드표는 참가/START 시 본인 전용으로 열림 · 만료 시 /카드'});
 }
 
 export function historyRows(t,selected){
