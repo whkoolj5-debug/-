@@ -21,10 +21,10 @@ export function publicRows(t){
  return [...controls,...actions,...rows(info.presets.map(p=>btn(`quick_${p.key}${tag}`,`${p.label} → ${money(p.total)}`)))];
 }
 export function hostRows(t){
- const theme=btn(`theme:${t.id}`,`테마 · ${tableTheme(t).name}`);
- if(t.status==='lobby')return rows([btn(`biginput:${t.id}`,'블라인드 설정',ButtonStyle.Primary),...(t.seats.filter(Boolean).length>=5?[btn(`start:${t.id}`,'START',ButtonStyle.Success,!t.blindsConfirmed)]:[]),btn(`cancel:${t.id}`,'대기 테이블 취소',ButtonStyle.Danger),theme]);
- if(t.status==='playing')return rows([...(t.hand?.done?[btn(`next:${t.id}`,'다음 판 시작',ButtonStyle.Success)]:[]),theme]);
- if(['refunding','settling'].includes(t.status))return rows([btn(`retry:${t.id}`,'정산 이어서 처리',ButtonStyle.Primary)]);
+ const theme=btn(`theme:${t.id}`,`테마 · ${tableTheme(t).name}`),refresh=btn(`refresh:${t.id}`,'테이블 다시 표시');
+ if(t.status==='lobby')return rows([btn(`biginput:${t.id}`,'블라인드 설정',ButtonStyle.Primary),...(t.seats.filter(Boolean).length>=5?[btn(`start:${t.id}`,'START',ButtonStyle.Success,!t.blindsConfirmed)]:[]),btn(`cancel:${t.id}`,'대기 테이블 취소',ButtonStyle.Danger),theme,refresh]);
+ if(t.status==='playing')return rows([...(t.hand?.done?[btn(`next:${t.id}`,'다음 판 시작',ButtonStyle.Success)]:[]),theme,refresh]);
+ if(['refunding','settling'].includes(t.status))return rows([btn(`retry:${t.id}`,'정산 이어서 처리',ButtonStyle.Primary),refresh]);
  return [];
 }
 export function embed(t,mode,turnSeconds=90){

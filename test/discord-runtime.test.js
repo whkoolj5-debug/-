@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {MessageFlags} from 'discord.js';
+import {MessageFlags,PermissionsBitField,PermissionFlagsBits} from 'discord.js';
 import {Store} from '../src/store.js';
 import {Economy} from '../src/economy.js';
 import {Service} from '../src/service.js';
@@ -9,13 +9,14 @@ import {bettingInfo,cardText} from '../src/table-view.js';
 async function setup(){
  const store=new Store(':memory:'),economy=new Economy(store),service=new Service(store,economy),messages=[];
  const message={id:'m',edit:async payload=>{messages.push(payload);}};
- const client={channels:{fetch:async()=>({isTextBased:()=>true,messages:{fetch:async()=>message},send:async payload=>{messages.push(payload);return message;}})}};
+ const channel={guildId:'g',guild:{members:{me:{id:'bot'}}},permissionsFor:()=>new PermissionsBitField(Object.values(PermissionFlagsBits)),isTextBased:()=>true,messages:{fetch:async()=>message},send:async payload=>{messages.push(payload);return message;}};
+ const client={channels:{fetch:async()=>channel}};
  const config={mode:'test',guildId:'g',turnSeconds:90};
  const runtime=createDiscordRuntime({client,store,economy,service,config,renderTableImage:async()=>Buffer.from('image-fixture'),renderHandImage:async()=>Buffer.from('private-fixture')});
  const t=await service.create('t','g','c','a','A',1000);
  for(const [n,id] of ['b','c','d','e'].entries())await service.join(t,id,id,n+1);
  service.blinds(t,'a',20,10);service.start(t,'a');
- return {store,economy,service,t,messages,runtime};
+ return {store,economy,service,t,messages,runtime,channel,client};
 }
 function interaction({user='a',button,command,sub,modal,value,guild='g',number}={}){
  const calls=[];
@@ -95,4 +96,32 @@ test('replay button edits a private history panel and never advances live game s
  await runtime.handle(i);assert.equal(i.calls[0][0],'deferUpdate');
  const payload=i.calls[1][1];assert.equal(payload.files[0].name,'replay.png');assert(payload.content.includes('실제 게임에는 영향을 주지 않는'));
  assert.equal(payload.components[0].components.length,5);assert.equal(JSON.stringify(t.hand),before);store.close();
+});
+
+test('missing access is explained before buy-in; recovery does not charge a second buy-in',async()=>{
+ const {store,economy,service,runtime,client,channel,t}=await setup();
+ client.channels.fetch=async()=>{throw Object.assign(Error('Missing Access'),{code:50001});};
+ const before=(await economy.balance('g','new')).balance;
+ await assert.rejects(()=>runtime.handle(interaction({user:'new',modal:'create',value:'1000'})),/채널.*권한/);
+ assert.equal((await economy.balance('g','new')).balance,before);assert.equal(service.forUser('g','new'),undefined);
+ client.channels.fetch=async()=>channel;
+ const balance=(await economy.balance('g','a')).balance;
+ await runtime.handle(interaction({user:'a',button:'refresh:t'}));
+ assert.equal((await economy.balance('g','a')).balance,balance);assert(t.messageId);store.close();
+});
+test('missing attachment permission stops creation before a transfer',async()=>{
+ const {store,service,runtime,channel}=await setup();
+ channel.permissionsFor=()=>new PermissionsBitField([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.ReadMessageHistory]);
+ await assert.rejects(()=>runtime.handle(interaction({user:'new',modal:'create',value:'1000'})),/파일 첨부.*링크 임베드/);
+ assert.equal(service.forUser('g','new'),undefined);assert.equal(store.transfer('t:buy:new'),undefined);store.close();
+});
+test('public send failure preserves a recoverable table and a repeated create never charges twice',async()=>{
+ const {store,economy,service,runtime,channel}=await setup();
+ const send=channel.send;channel.send=async()=>{throw Object.assign(Error('Missing Access'),{code:50001});};
+ await assert.rejects(()=>runtime.handle(interaction({user:'new',modal:'create',value:'1000'})),/테이블/);
+ const existing=service.forUser('g','new');assert(existing);assert.equal(existing.status,'lobby');assert.equal(existing.messageId,null);
+ const balance=(await economy.balance('g','new')).balance;assert.equal(balance,4999000);
+ channel.send=send;
+ await runtime.handle(interaction({user:'new',modal:'create',value:'2000'}));
+ assert.equal(service.forUser('g','new').id,existing.id);assert.equal((await economy.balance('g','new')).balance,balance);assert.equal(existing.startingMoney,1000);assert(existing.messageId);store.close();
 });

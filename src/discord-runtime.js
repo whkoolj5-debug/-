@@ -4,6 +4,7 @@ import {renderTable,handImage} from './art.js';
 import {money,btn,rows,confirm,publicRows,hostRows,embed,historyRows,replayRows} from './ui.js';
 import {bettingInfo,handSummary,themes,replayState} from './table-view.js';
 import {quickBet,historyPage} from './interactions.js';
+import {accessError,tableChannel} from './channel-access.js';
 import {evaluateHand} from './poker-engine.js';
 
 export function amount(s){if(!/^(?:[1-9]\d*|[1-9]\d{0,2}(?:,\d{3})+)$/.test(s.trim()))throw Error('정확한 정수를 입력해주세요. 예: 500,000');const n=Number(s.replaceAll(',',''));if(!Number.isSafeInteger(n)||n<1||n>100000000)throw Error('금액은 1~100,000,000 범위입니다.');return n;}
@@ -16,10 +17,10 @@ function modal(i,id,title,label){return i.showModal(new ModalBuilder().setCustom
 const find=i=>service.forUser(i.guildId,i.user.id);
 function table(id,i){const t=service.tables.get(id);if(t?.guildId!==i.guildId)throw Error('이 서버의 테이블이 아닙니다.');return t;}
 async function render(t){
- const channel=await client.channels.fetch(t.channelId);if(!channel?.isTextBased())throw Error('테이블 채널을 찾을 수 없습니다.');
+ const channel=await tableChannel(client,t.channelId,t.guildId);
  const payload={content:`<@${t.ownerId}>님의 테이블 · 스타트머니 ${money(t.startingMoney)}`,embeds:[embed(t,mode,config.turnSeconds)],files:[new AttachmentBuilder(await renderTableImage({...t,displayMode:mode}),{name:'table.png'})],components:publicRows(t),allowedMentions:{parse:[]}};
- if(t.messageId){try{const m=await channel.messages.fetch(t.messageId);await m.edit({...payload,attachments:[]});}catch(e){if(e.code!==10008)throw e;t.messageId=null;}}
- if(!t.messageId){const m=await channel.send({...payload,allowedMentions:{users:[t.ownerId]}});t.messageId=m.id;service.save(t);}
+ if(t.messageId){try{const m=await channel.messages.fetch(t.messageId);await m.edit({...payload,attachments:[]});}catch(e){if(e.code!==10008)throw accessError(e);t.messageId=null;}}
+ if(!t.messageId){let m;try{m=await channel.send({...payload,allowedMentions:{users:[t.ownerId]}});}catch(error){throw accessError(error);}t.messageId=m.id;service.save(t);}
  const p=panels.get(t.id);if(p)await p.editReply({content:`방장 전용 · 참가 ${t.seats.filter(Boolean).length}/7 · ${t.status}`,components:hostRows(t)}).catch(()=>panels.delete(t.id));
 }
 async function panel(i,t){service.owner(t,i.user.id);await i.reply({...E,content:`방장 전용 · 참가 ${t.seats.filter(Boolean).length}/7 · ${t.status}`,components:hostRows(t)});panels.set(t.id,i);}
@@ -43,6 +44,7 @@ async function handle(i){
  if(i.isChatInputCommand()){
   const sub=i.options.getSubcommand(false);
   if(i.commandName==='포커'){
+   if(sub==='만들기'&&find(i)?.ownerId===i.user.id)return panel(i,find(i));
    if(sub==='만들기')return i.reply({...E,content:'게임 스타팅머니를 정해주세요.',components:rows([btn('createinput','시작머니 입력',ButtonStyle.Primary)])});
    if(sub==='관리')return panel(i,find(i));
    if(sub==='도움말')return i.reply({...E,content:'① /포커 테이블 만들기 → 시작머니 입력\n② /빅 스몰 설정 → 방장만 설정\n③ 5명 이상 참가 → 방장이 /포커 관리 → START\n④ 내 카드 보기 → 내 차례에 체크/콜/레이즈\n⑤ 판 종료 → 방장이 다음 판 시작\n\n콜은 표시된 금액만 추가합니다. 레이즈와 빠른 베팅의 숫자는 이번 라운드 총액입니다. 팟 버튼은 콜 후 팟 크기만큼 레이즈합니다. ㅈㅈ는 일반 폴드와 달리 남은 칩 전액을 기부하고 영구 포기합니다.\n/포커 기록으로 이전 판 결과와 순증감을 확인할 수 있습니다.'});
@@ -74,6 +76,7 @@ async function handle(i){
   }
   if(a==='history')return history(i,t,v===undefined?undefined:Number(v),v!==undefined);
   if(a==='export'){const records=[...(t.history||[])],current=handSummary(t);if(current&&!records.some(h=>h.handNo===current.handNo))records.push(current);return i.reply({...E,content:'공용 카드·공개된 쇼다운·행동·순증감만 포함합니다. 폴드한 패와 덱은 제외됩니다.',files:[new AttachmentBuilder(Buffer.from(JSON.stringify(records.slice(-10),null,2)),{name:'rsf-hand-history.json'})]});}
+  if(a==='refresh'){service.owner(t,i.user.id);await i.deferUpdate();panels.set(t.id,i);return render(t);}
   if(a==='theme'){service.owner(t,i.user.id);const keys=Object.keys(themes);t.theme=keys[(keys.indexOf(t.theme||'emerald')+1)%keys.length];service.save(t);await i.deferUpdate();return render(t);}
   if(a==='cards')return cards(i,t);
   if(a==='surrender')return surrender(i,t);
@@ -113,7 +116,10 @@ async function handle(i){
  if(i.isModalSubmit()){
   const [a,id,v]=i.customId.split(':'),n=amount(i.fields.getTextInputValue('amount'));
   if(a==='create'){
-   await i.deferReply(E);const t=await service.create(randomUUID().slice(0,12),i.guildId,i.channelId,i.user.id,i.member.displayName,n);
+   await i.deferReply(E);await tableChannel(client,i.channelId,i.guildId);
+   const existing=find(i);
+   if(existing?.ownerId===i.user.id){await i.editReply({content:'이전에 만든 테이블을 다시 표시합니다. 참가비를 추가로 차감하지 않습니다.',components:hostRows(existing)});panels.set(existing.id,i);return render(existing);}
+   const t=await service.create(randomUUID().slice(0,12),i.guildId,i.channelId,i.user.id,i.member.displayName,n);
    await i.editReply({content:`테이블이 만들어졌습니다. 시작머니 ${money(n)}${mode==='test'?' (테스트)':''}`,components:hostRows(t)});panels.set(t.id,i);return render(t);
   }
   const t=table(id,i);
