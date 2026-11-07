@@ -1,3 +1,10 @@
+## 2.5.1 · Host dependency recovery
+
+- Keep src/index.js as a dependency-free startup wrapper.
+- Probe discord.js and an actual sharp render before loading the bot. If broken or missing, run one lockfile-based npm ci with optional native packages, then verify again.
+- Skip lifecycle scripts, preserve .env and data, and use a writable temporary npm cache.
+- Support Node >=22.13, including DisHost Node 22.
+
 ## 2.5.0 · 카드표와 자동 진행
 
 - `/족보`: Royal Straight Flush 길드 족보 이미지.

@@ -1,3 +1,7 @@
+## Startup recovery (2.5.1)
+
+The startup file remains `src/index.js`. When host dependency caching leaves discord.js or sharp missing, startup installs locked production dependencies once and verifies them before loading the bot. Existing .env and game data are preserved. Installation requires registry network access and write access to node_modules. If these are blocked, startup reports the installation error rather than looping. Node >=22.13 is supported.
+
 ## 2.5.0 · 카드표와 자동 진행
 
 - `/족보`: Royal Straight Flush 길드 족보 이미지.

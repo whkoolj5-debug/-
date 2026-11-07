@@ -1,10 +1,10 @@
 {
   "name": "rsf-discord-holdem-bot",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "start": "node src/index.js",
